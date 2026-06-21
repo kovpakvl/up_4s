@@ -130,6 +130,9 @@ class FakeEmployeeRepository:
         self.employees[employee["id"]] = employee
         return employee
 
+    def list_employees(self):
+        return list(self.employees.values())
+
     def employee_has_user(self, employee_id):
         return employee_id in self.employee_users
 
@@ -176,6 +179,26 @@ def test_activation_service_creates_employee_key_and_user():
     assert user["access_role"] == "employee"
     assert user["employee_id"] == employee["id"]
     assert employee_repository.employee_has_user(employee["id"])
+
+
+def test_activation_service_lists_employees_for_admin():
+    auth_repository = FakeAuthRepository()
+    admin = auth_repository.create_admin("admin", "Admin", "hash", "salt")
+    employee_repository = FakeEmployeeRepository()
+    service = EmployeeActivationService(
+        employee_repository,
+        auth_repository,
+        AppConfig(database_url="postgresql://test"),
+    )
+    service.create_employee(admin, "First User")
+    service.create_employee(admin, "Second User")
+
+    employees = service.list_employees(admin)
+
+    assert [employee["full_name"] for employee in employees] == [
+        "First User",
+        "Second User",
+    ]
 
 
 def test_activation_service_rejects_missing_employee():

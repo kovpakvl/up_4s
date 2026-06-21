@@ -44,6 +44,10 @@ class EmployeeActivationService:
         )
         return employee
 
+    def list_employees(self, actor_user: dict[str, Any]) -> list[dict[str, Any]]:
+        _require_admin(actor_user)
+        return self.employee_repository.list_employees()
+
     def create_activation_key(
         self,
         actor_user: dict[str, Any],

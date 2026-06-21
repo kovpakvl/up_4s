@@ -38,6 +38,15 @@ def register_admin_routes(
             return jsonify(error=str(exc)), exc.status_code
         return jsonify(employee), 201
 
+    @app.get("/api/admin/employees")
+    @admin_required
+    def list_employees():
+        try:
+            employees = activation_service.list_employees(request.current_user)
+        except ServiceError as exc:
+            return jsonify(error=str(exc)), exc.status_code
+        return jsonify(employees)
+
     @app.post("/api/admin/employees/<int:employee_id>/activation-key")
     @admin_required
     def create_activation_key(employee_id: int):

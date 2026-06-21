@@ -26,6 +26,29 @@ class EmployeeRepository:
             conn.commit()
         return dict(row)
 
+    def list_employees(self) -> list[dict[str, Any]]:
+        with self.database.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT e.id, e.full_name, e.email, e.phone, e.status,
+                       e.created_at, e.updated_at,
+                       u.id IS NOT NULL AS has_user,
+                       latest_key.expires_at AS activation_expires_at,
+                       latest_key.used_at AS activation_used_at
+                FROM employees e
+                LEFT JOIN users u ON u.employee_id = e.id
+                LEFT JOIN LATERAL (
+                    SELECT expires_at, used_at
+                    FROM activation_keys k
+                    WHERE k.employee_id = e.id
+                    ORDER BY k.created_at DESC, k.id DESC
+                    LIMIT 1
+                ) latest_key ON true
+                ORDER BY e.created_at DESC, e.id DESC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def employee_has_user(self, employee_id: int) -> bool:
         with self.database.connection() as conn:
             row = conn.execute(
