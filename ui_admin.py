@@ -37,6 +37,8 @@ class AdminApp(tk.Tk):
         self.entry_favorite_var = tk.BooleanVar(value=False)
         self.selected_entry_id: int | None = None
         self.client: AdminApiClient | None = None
+        self.can_setup_admin = False
+        self.auth_tabs: ttk.Notebook | None = None
         self.employees: list[dict] = []
         self.password_entries: list[dict] = []
 
@@ -90,8 +92,8 @@ class AdminApp(tk.Tk):
         self.content.pack(side="left", fill="both", expand=True)
 
         self._build_server_panel()
-        self.auth_frame = ttk.LabelFrame(self.content, text="Администратор", padding=18)
-        self.auth_frame.pack(fill="x", pady=(0, 16))
+        self.auth_frame = ttk.Frame(self.content)
+        self.auth_frame.pack(fill="both", expand=True)
         self._build_auth_panel("loading")
 
         self.work_frame = ttk.Frame(self.content)
@@ -129,40 +131,162 @@ class AdminApp(tk.Tk):
     def _build_auth_panel(self, mode: str) -> None:
         for child in self.auth_frame.winfo_children():
             child.destroy()
+        self.auth_tabs = None
         self.auth_mode = mode
+
+        card = ttk.Frame(self.auth_frame, padding=30, style="Panel.TFrame")
+        card.pack(expand=True)
+        card.columnconfigure(0, weight=1)
+        self._build_auth_header(card)
+
         if mode == "loading":
-            ttk.Label(self.auth_frame, text="Проверяю сервер...").pack(anchor="w")
+            ttk.Label(
+                card,
+                text="Проверяю сервер...",
+                style="AuthMuted.TLabel",
+            ).pack(anchor="w", pady=(18, 0))
             return
         if mode == "offline":
             ttk.Label(
-                self.auth_frame,
+                card,
                 text="Сервер недоступен. Запустите сервер или проверьте Docker.",
-            ).pack(anchor="w")
+                style="AuthMuted.TLabel",
+                wraplength=360,
+                justify="left",
+            ).pack(anchor="w", pady=(18, 0))
+            actions = ttk.Frame(card, style="Panel.TFrame")
+            actions.pack(fill="x", pady=(18, 0))
+            ttk.Button(
+                actions,
+                text="Запустить сервер",
+                style="Accent.TButton",
+                command=self._start_server,
+            ).pack(side="left")
+            ttk.Button(
+                actions,
+                text="Проверить снова",
+                command=self._check_server,
+            ).pack(side="left", padx=(8, 0))
             return
 
-        title = "Создать аккаунт администратора" if mode == "setup" else "Вход администратора"
-        ttk.Label(self.auth_frame, text=title, style="Panel.TLabel").grid(
-            row=0, column=0, columnspan=4, sticky="w", pady=(0, 10)
-        )
-        row = 1
-        if mode == "setup":
-            self._labeled_entry(self.auth_frame, row, "Имя", self.display_name_var)
-            row += 1
-        self._labeled_entry(self.auth_frame, row, "Логин", self.username_var)
-        row += 1
-        self._labeled_entry(self.auth_frame, row, "Пароль", self.password_var, secret=True)
-        row += 1
-        if mode == "setup":
-            self._labeled_entry(self.auth_frame, row, "Повтор", self.repeat_var, secret=True)
-            row += 1
-        button_text = "Создать аккаунт" if mode == "setup" else "Войти"
+        self._build_auth_tabs(card, mode)
+
+    def _build_auth_header(self, parent: tk.Misc) -> None:
+        brand = ttk.Frame(parent, style="Panel.TFrame")
+        brand.pack(fill="x")
+        ttk.Label(brand, text="SO", style="BrandMark.TLabel").pack(side="left")
+        titles = ttk.Frame(brand, style="Panel.TFrame")
+        titles.pack(side="left", padx=(12, 0))
+        ttk.Label(titles, text="SecureOffice", style="AuthTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            titles,
+            text="Администратор",
+            style="AuthMuted.TLabel",
+        ).pack(anchor="w", pady=(2, 0))
+
+    def _build_auth_tabs(self, parent: tk.Misc, mode: str) -> None:
+        self.auth_tabs = ttk.Notebook(parent, style="Auth.TNotebook")
+        self.auth_tabs.pack(fill="x", pady=(20, 0))
+
+        login_tab = ttk.Frame(self.auth_tabs, padding=(0, 18, 0, 0), style="Panel.TFrame")
+        register_tab = ttk.Frame(self.auth_tabs, padding=(0, 18, 0, 0), style="Panel.TFrame")
+        self.auth_tabs.add(login_tab, text="Войти")
+        self.auth_tabs.add(register_tab, text="Зарегистрироваться")
+
+        login_entry = self._build_login_tab(login_tab)
+        self._build_register_tab(register_tab)
+        self.auth_tabs.select(register_tab if mode == "setup" else login_tab)
+        self.auth_tabs.bind("<<NotebookTabChanged>>", self._on_auth_tab_changed)
+        if mode != "setup":
+            login_entry.focus_set()
+
+    def _build_login_tab(self, parent: tk.Misc) -> ttk.Entry:
+        ttk.Label(
+            parent,
+            text="Войдите под аккаунтом администратора.",
+            style="AuthMuted.TLabel",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
+        username_entry = self._auth_entry(parent, 1, "Логин", self.username_var)
+        self._auth_entry(parent, 2, "Пароль", self.password_var, secret=True)
         ttk.Button(
-            self.auth_frame,
-            text=button_text,
+            parent,
+            text="Войти",
             style="Accent.TButton",
-            command=self._submit_auth,
-        ).grid(row=row, column=1, sticky="ew", pady=(12, 0))
-        self.auth_frame.columnconfigure(1, weight=1)
+            command=lambda: self._submit_auth("login"),
+        ).grid(row=3, column=0, columnspan=2, sticky="ew", pady=(16, 0))
+        parent.columnconfigure(1, weight=1)
+        return username_entry
+
+    def _build_register_tab(self, parent: tk.Misc) -> None:
+        if not self.can_setup_admin:
+            ttk.Label(
+                parent,
+                text=(
+                    "Первый администратор уже создан. "
+                    "Для работы войдите под существующим аккаунтом."
+                ),
+                style="AuthMuted.TLabel",
+                wraplength=360,
+                justify="left",
+            ).grid(row=0, column=0, sticky="w", pady=(0, 14))
+            ttk.Button(
+                parent,
+                text="Перейти ко входу",
+                command=self._select_login_tab,
+            ).grid(row=1, column=0, sticky="ew")
+            parent.columnconfigure(0, weight=1)
+            return
+
+        ttk.Label(
+            parent,
+            text="Создайте первый аккаунт, который будет управлять сервером.",
+            style="AuthMuted.TLabel",
+            wraplength=360,
+            justify="left",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
+        self._auth_entry(parent, 1, "Имя", self.display_name_var)
+        self._auth_entry(parent, 2, "Логин", self.username_var)
+        self._auth_entry(parent, 3, "Пароль", self.password_var, secret=True)
+        self._auth_entry(parent, 4, "Повтор", self.repeat_var, secret=True)
+        ttk.Button(
+            parent,
+            text="Создать аккаунт",
+            style="Accent.TButton",
+            command=lambda: self._submit_auth("setup"),
+        ).grid(row=5, column=0, columnspan=2, sticky="ew", pady=(16, 0))
+        parent.columnconfigure(1, weight=1)
+
+    def _auth_entry(
+        self,
+        parent: tk.Misc,
+        row: int,
+        label: str,
+        variable: tk.StringVar,
+        secret: bool = False,
+    ) -> ttk.Entry:
+        ttk.Label(parent, text=label, style="Panel.TLabel").grid(
+            row=row, column=0, sticky="w", pady=6
+        )
+        entry = ttk.Entry(parent, textvariable=variable, show="*" if secret else "", width=38)
+        entry.grid(row=row, column=1, sticky="ew", padx=(12, 0), pady=6)
+        return entry
+
+    def _on_auth_tab_changed(self, _event=None) -> None:
+        if not self.auth_tabs:
+            return
+        selected = self.auth_tabs.select()
+        if not selected:
+            return
+        tab_text = self.auth_tabs.tab(selected, "text")
+        self.auth_mode = (
+            "setup"
+            if tab_text == "Зарегистрироваться" and self.can_setup_admin
+            else "login"
+        )
+
+    def _select_login_tab(self) -> None:
+        if self.auth_tabs:
+            self.auth_tabs.select(0)
 
     def _build_employee_panel(self) -> None:
         form = ttk.Frame(self.employees_tab)
@@ -389,6 +513,7 @@ class AdminApp(tk.Tk):
 
         def apply_status(status: dict):
             initialized = bool(status.get("initialized"))
+            self.can_setup_admin = not initialized
             self.status_var.set(
                 "Сервер работает. Администратор создан."
                 if initialized
@@ -399,18 +524,21 @@ class AdminApp(tk.Tk):
 
         self._run_background(request_status, apply_status)
 
-    def _submit_auth(self) -> None:
+    def _submit_auth(self, mode: str | None = None) -> None:
         if self.client is None:
             self.client = AdminApiClient(self.server_url_var.get())
         username = self.username_var.get().strip()
         password = self.password_var.get()
+        auth_mode = mode or self.auth_mode
         try:
-            if self.auth_mode == "setup":
+            if auth_mode == "setup":
                 if password != self.repeat_var.get():
                     raise AdminApiError("Пароли не совпадают.")
                 self.client.setup_admin(username, self.display_name_var.get().strip(), password)
-                messagebox.showinfo("Администратор", "Аккаунт создан. Выполните вход.")
+                self.can_setup_admin = False
+                self.status_var.set("Аккаунт администратора создан. Выполните вход.")
                 self._show_auth_gate("login")
+                self.after(120, self._show_registration_onboarding)
                 return
             self.client.login(username, password)
         except AdminApiError as exc:
@@ -421,6 +549,118 @@ class AdminApp(tk.Tk):
         self._load_employees()
         self._load_password_entries()
         self._load_audit_events()
+
+    def _show_registration_onboarding(self) -> None:
+        first_time = self._ask_choice(
+            "Первый запуск",
+            "Вы здесь впервые?",
+            "Да",
+            "Нет",
+        )
+        if first_time is None:
+            return
+        if first_time:
+            self._show_tutorial_intro()
+            return
+        wants_tutorial = self._ask_choice(
+            "Обучение",
+            "Желаете пройти обучение?",
+            "Да",
+            "Нет",
+        )
+        if wants_tutorial:
+            self._show_tutorial_intro()
+
+    def _ask_choice(
+        self,
+        title: str,
+        text: str,
+        yes_text: str,
+        no_text: str,
+    ) -> bool | None:
+        result: dict[str, bool | None] = {"value": None}
+        dialog = self._dialog(title, 420, 220)
+        panel = ttk.Frame(dialog, padding=26, style="Panel.TFrame")
+        panel.pack(fill="both", expand=True)
+
+        ttk.Label(panel, text=title, style="AuthTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            panel,
+            text=text,
+            style="AuthMuted.TLabel",
+            wraplength=340,
+            justify="left",
+        ).pack(anchor="w", pady=(12, 22))
+
+        actions = ttk.Frame(panel, style="Panel.TFrame")
+        actions.pack(fill="x")
+
+        def choose(value: bool | None) -> None:
+            result["value"] = value
+            dialog.destroy()
+
+        ttk.Button(
+            actions,
+            text=no_text,
+            command=lambda: choose(False),
+        ).pack(side="right")
+        ttk.Button(
+            actions,
+            text=yes_text,
+            style="Accent.TButton",
+            command=lambda: choose(True),
+        ).pack(side="right", padx=(0, 8))
+        dialog.protocol("WM_DELETE_WINDOW", lambda: choose(None))
+        dialog.wait_window()
+        return result["value"]
+
+    def _show_tutorial_intro(self) -> None:
+        dialog = self._dialog("Короткое обучение", 520, 360)
+        panel = ttk.Frame(dialog, padding=26, style="Panel.TFrame")
+        panel.pack(fill="both", expand=True)
+
+        ttk.Label(panel, text="Короткое обучение", style="AuthTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            panel,
+            text="Базовый порядок работы администратора:",
+            style="AuthMuted.TLabel",
+        ).pack(anchor="w", pady=(10, 14))
+
+        steps = (
+            "1. Запустите сервер и скопируйте ссылку для сотрудников.",
+            "2. Добавьте сотрудников и создайте для каждого ключ активации.",
+            "3. В разделе паролей выберите сотрудников и добавьте нужные записи.",
+            "4. В журнале проверяйте входы, изменения и действия с паролями.",
+        )
+        for step in steps:
+            ttk.Label(
+                panel,
+                text=step,
+                style="Panel.TLabel",
+                wraplength=440,
+                justify="left",
+            ).pack(anchor="w", pady=3)
+
+        ttk.Button(
+            panel,
+            text="Понятно",
+            style="Accent.TButton",
+            command=dialog.destroy,
+        ).pack(fill="x", pady=(22, 0))
+        dialog.wait_window()
+
+    def _dialog(self, title: str, width: int, height: int) -> tk.Toplevel:
+        dialog = tk.Toplevel(self)
+        dialog.title(title)
+        dialog.configure(background=COLORS["bg"])
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        self.update_idletasks()
+        x = self.winfo_rootx() + max((self.winfo_width() - width) // 2, 0)
+        y = self.winfo_rooty() + max((self.winfo_height() - height) // 2, 0)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        dialog.grab_set()
+        return dialog
 
     def _create_employee(self) -> None:
         if not self.client:
@@ -671,7 +911,7 @@ class AdminApp(tk.Tk):
         self._set_work_enabled(False)
         self.work_frame.pack_forget()
         if not self.auth_frame.winfo_ismapped():
-            self.auth_frame.pack(fill="x", pady=(0, 16))
+            self.auth_frame.pack(fill="both", expand=True)
         self._build_auth_panel(mode)
 
     def _show_workspace(self) -> None:

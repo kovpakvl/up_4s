@@ -82,6 +82,39 @@ def apply_theme(window: tk.Misc) -> None:
         font=("Segoe UI", 14, "bold"),
         padding=(11, 9),
     )
+    style.configure(
+        "AuthMuted.TLabel",
+        background=COLORS["panel"],
+        foreground=COLORS["muted"],
+        font=("Segoe UI", 10),
+    )
+    style.configure(
+        "Auth.TNotebook",
+        background=COLORS["panel"],
+        borderwidth=0,
+        tabmargins=(0, 12, 0, 0),
+    )
+    style.configure(
+        "Auth.TNotebook.Tab",
+        background=COLORS["panel_soft"],
+        foreground=COLORS["muted"],
+        bordercolor=COLORS["line"],
+        lightcolor=COLORS["panel_soft"],
+        darkcolor=COLORS["panel_soft"],
+        padding=(18, 9),
+        font=("Segoe UI", 10, "bold"),
+    )
+    style.map(
+        "Auth.TNotebook.Tab",
+        background=[
+            ("selected", COLORS["accent"]),
+            ("active", COLORS["line"]),
+        ],
+        foreground=[
+            ("selected", COLORS["accent_text"]),
+            ("active", COLORS["text"]),
+        ],
+    )
 
     style.configure(
         "TButton",
