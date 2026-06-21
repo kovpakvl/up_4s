@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 
-MOSCOW_TZ = ZoneInfo("Europe/Moscow")
+MOSCOW_TZ = timezone(timedelta(hours=3), "MSK")
 
 
 def parse_datetime(value: Any) -> datetime | None:
