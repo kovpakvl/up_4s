@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="page-header narrow">
+    <div>
+        <p class="eyebrow">Инструмент безопасности</p>
+        <h1>Генератор паролей</h1>
+    </div>
+</header>
+
+<form method="post" class="form panel-form">
+    <div class="form-grid">
+        <label>
+            <span>Длина</span>
+            <input type="number" name="length" min="4" max="128" value="{{ length }}">
+        </label>
+        <label class="check-line"><input type="checkbox" name="digits" checked><span>Цифры</span></label>
+        <label class="check-line"><input type="checkbox" name="lowercase" checked><span>Строчные буквы</span></label>
+        <label class="check-line"><input type="checkbox" name="uppercase" checked><span>Заглавные буквы</span></label>
+        <label class="check-line"><input type="checkbox" name="special" checked><span>Спецсимволы</span></label>
+        <label class="check-line"><input type="checkbox" name="exclude_similar"><span>Исключить похожие символы</span></label>
+    </div>
+    <div class="form-actions">
+        <button class="primary-button compact" type="submit">Сгенерировать</button>
+    </div>
+</form>
+
+{% if password %}
+<section class="generated-secret">
+    <input id="generated-password" readonly value="{{ password }}">
+    <button class="primary-button compact" data-copy="#generated-password">Копировать</button>
+</section>
+{% endif %}
+{% endblock %}

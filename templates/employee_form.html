@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="page-header narrow">
+    <div>
+        <p class="eyebrow">Профиль сотрудника</p>
+        <h1>{% if employee %}Редактирование{% else %}Новый сотрудник{% endif %}</h1>
+    </div>
+</header>
+
+<form method="post" class="form panel-form">
+    <div class="form-grid">
+        <label>
+            <span>ФИО</span>
+            <input name="full_name" value="{{ employee.full_name if employee else '' }}" required>
+        </label>
+        <label>
+            <span>Должность</span>
+            <input name="position" value="{{ employee.position if employee else '' }}">
+        </label>
+        <label>
+            <span>Роль</span>
+            <select name="role">
+                {% for role in roles %}
+                <option value="{{ role }}" {% if employee and employee.role == role %}selected{% endif %}>{{ role }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Отдел</span>
+            <select name="department_id">
+                {% for department in departments %}
+                <option value="{{ department.id }}" {% if employee and employee.department_id == department.id %}selected{% endif %}>{{ department.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Телефон</span>
+            <input name="phone" value="{{ employee.phone if employee else '' }}">
+        </label>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email" value="{{ employee.email if employee else '' }}">
+        </label>
+        <label>
+            <span>Статус</span>
+            <select name="status">
+                {% for status in statuses %}
+                <option value="{{ status }}" {% if employee and employee.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="form-actions">
+        <a class="ghost-button" href="{{ url_for('dashboard') }}">Отмена</a>
+        {% if employee %}
+        <button class="danger-button" form="delete-employee" type="submit">Удалить</button>
+        {% endif %}
+        <button class="primary-button compact" type="submit">Сохранить</button>
+    </div>
+</form>
+
+{% if employee %}
+<form id="delete-employee" method="post" action="{{ url_for('delete_employee', employee_id=employee.id) }}"
+      onsubmit="return confirm('Удалить сотрудника?');"></form>
+{% endif %}
+{% endblock %}

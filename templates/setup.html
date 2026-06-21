@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-panel">
+    <div class="auth-logo">SO</div>
+    <h1>Создание SecureOffice</h1>
+    <p>Задайте общий мастер-пароль администратора</p>
+    <form method="post" class="form">
+        <label>
+            <span>Мастер-пароль</span>
+            <input type="password" name="password" minlength="8" required autofocus>
+        </label>
+        <label>
+            <span>Повтор пароля</span>
+            <input type="password" name="repeat_password" minlength="8" required>
+        </label>
+        <button class="primary-button" type="submit">Создать хранилище</button>
+    </form>
+</section>
+{% endblock %}

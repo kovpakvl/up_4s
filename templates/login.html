@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-panel">
+    <div class="auth-logo">SO</div>
+    <h1>SecureOffice</h1>
+    <p>Вход в корпоративное хранилище доступов</p>
+    <form method="post" class="form">
+        <label>
+            <span>Мастер-пароль</span>
+            <input type="password" name="password" required autofocus>
+        </label>
+        <button class="primary-button" type="submit">Войти</button>
+    </form>
+    <p class="auth-help">
+        Нет доступа к старому мастер-паролю?
+        <a href="{{ url_for('reset_vault_route') }}">Создать новое хранилище</a>
+    </p>
+</section>
+{% endblock %}

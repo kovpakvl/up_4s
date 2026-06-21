@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Корпоративные доступы</p>
+        <h1>Все аккаунты</h1>
+    </div>
+    <a class="primary-button compact" href="{{ url_for('add_account') }}">Добавить аккаунт</a>
+</header>
+
+<form method="get" class="table-tools">
+    <input name="q" value="{{ query }}" placeholder="Поиск по сервису, сотруднику, отделу">
+    <button class="ghost-button" type="submit">Найти</button>
+</form>
+
+{% include "_accounts_table.html" %}
+{% endblock %}

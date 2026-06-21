@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="page-header narrow">
+    <div>
+        <p class="eyebrow">Конфигурация</p>
+        <h1>Настройки</h1>
+    </div>
+</header>
+
+<form method="post" class="form panel-form">
+    <input type="hidden" name="action" value="save">
+    <div class="form-grid">
+        <label>
+            <span>Очистка буфера, сек.</span>
+            <input type="number" name="clipboard_clear_seconds" value="{{ values.clipboard_clear_seconds }}">
+        </label>
+        <label>
+            <span>Автоблокировка, мин.</span>
+            <input type="number" name="auto_lock_minutes" value="{{ values.auto_lock_minutes }}">
+        </label>
+        <label>
+            <span>Длина пароля по умолчанию</span>
+            <input type="number" name="default_password_length" value="{{ values.default_password_length }}">
+        </label>
+        <label>
+            <span>Тема</span>
+            <input name="theme" value="{{ values.theme }}">
+        </label>
+    </div>
+    <div class="form-actions">
+        <button class="primary-button compact" type="submit">Сохранить</button>
+    </div>
+</form>
+
+<form method="post" class="backup-row">
+    <input type="hidden" name="action" value="backup">
+    <button class="ghost-button" type="submit">Создать резервную копию БД</button>
+</form>
+{% endblock %}

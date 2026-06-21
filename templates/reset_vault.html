@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-panel">
+    <div class="auth-logo">SO</div>
+    <h1>Новое хранилище</h1>
+    <p>Если мастер-пароль неизвестен, можно очистить старые данные и создать новый аккаунт администратора.</p>
+    <form method="post" class="form">
+        <label>
+            <span>Введите RESET для подтверждения</span>
+            <input name="confirm" autocomplete="off" required autofocus>
+        </label>
+        <button class="danger-button" type="submit">Очистить и создать заново</button>
+        <a class="ghost-button" href="{{ url_for('login') }}">Назад ко входу</a>
+    </form>
+</section>
+{% endblock %}
