@@ -6,6 +6,7 @@ from ..services import (
     AuthService,
     EmployeeActivationService,
     PasswordEntryService,
+    ProfileService,
     ServiceError,
 )
 
@@ -15,6 +16,7 @@ def register_web_routes(
     auth_service: AuthService,
     activation_service: EmployeeActivationService,
     password_service: PasswordEntryService,
+    profile_service: ProfileService,
 ) -> None:
     def current_user():
         return auth_service.user_from_id(session.get("user_id"))
@@ -134,6 +136,33 @@ def register_web_routes(
         else:
             flash("Запись удалена.", "success")
         return redirect(url_for("cabinet"))
+
+    @app.route("/profile", methods=["GET", "POST"])
+    @employee_required
+    def profile(user):
+        if request.method == "POST":
+            try:
+                profile = profile_service.update(
+                    user,
+                    display_name=request.form.get("display_name"),
+                    email=request.form.get("email"),
+                    phone=request.form.get("phone"),
+                )
+            except ServiceError as exc:
+                flash(str(exc), "error")
+                return render_template(
+                    "profile.html",
+                    user=user,
+                    profile=profile_service.me(user),
+                )
+            flash("Профиль обновлён.", "success")
+            session["user_id"] = profile["id"]
+            return redirect(url_for("profile"))
+        return render_template(
+            "profile.html",
+            user=user,
+            profile=profile_service.me(user),
+        )
 
     @app.get("/cabinet/entries/<int:entry_id>/history")
     @employee_required

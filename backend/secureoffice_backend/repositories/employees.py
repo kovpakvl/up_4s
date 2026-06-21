@@ -129,6 +129,44 @@ class EmployeeRepository:
             ).fetchone()
         return dict(row) if row else None
 
+    def find_employee_by_id(self, employee_id: int) -> dict[str, Any] | None:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT e.id, e.full_name, e.email, e.phone, e.status,
+                       e.department_id, e.position_id,
+                       d.name AS department_name,
+                       p.name AS position_name
+                FROM employees e
+                LEFT JOIN departments d ON d.id = e.department_id
+                LEFT JOIN positions p ON p.id = e.position_id
+                WHERE e.id = %s
+                """,
+                (employee_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def update_employee_contacts(
+        self,
+        employee_id: int,
+        *,
+        email: str,
+        phone: str,
+    ) -> dict[str, Any] | None:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                UPDATE employees
+                SET email = %s, phone = %s, updated_at = now()
+                WHERE id = %s
+                RETURNING id, full_name, email, phone, status,
+                          department_id, position_id
+                """,
+                (email, phone, employee_id),
+            ).fetchone()
+            conn.commit()
+        return dict(row) if row else None
+
     def employee_has_user(self, employee_id: int) -> bool:
         with self.database.connection() as conn:
             row = conn.execute(

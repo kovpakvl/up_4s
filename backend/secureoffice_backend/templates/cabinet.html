@@ -9,18 +9,17 @@
     <div class="muted">URL, логины и пароли вашей учётной записи</div>
   </div>
   <div class="toolbar">
-    <a class="button primary" href="{{ url_for('new_entry') }}">Добавить</a>
+    <a class="button primary" href="{{ url_for('new_entry') }}">+ Добавить запись</a>
   </div>
 </header>
 
 <section class="panel">
   {% if entries %}
     <div class="table-wrap">
-      <table>
+      <table class="password-table">
         <thead>
           <tr>
             <th>Сервис</th>
-            <th>URL</th>
             <th>Логин</th>
             <th>Пароль</th>
             <th>Обновлён</th>
@@ -30,24 +29,39 @@
         <tbody>
           {% for entry in entries %}
             <tr data-password-row>
-              <td>{{ "★ " if entry.is_favorite else "" }}{{ entry.service_name }}</td>
               <td>
-                {% if entry.site_url %}
-                  <a href="{{ entry.site_url }}" target="_blank" rel="noreferrer">{{ entry.site_url }}</a>
-                {% endif %}
+                <div class="service-cell">
+                  <div class="service-mark">{{ (entry.service_name or '?')[0:1]|upper }}</div>
+                  <div>
+                    <div class="service-name">
+                      {% if entry.is_favorite %}<span class="service-fav">★</span>{% endif %}
+                      {{ entry.service_name }}
+                    </div>
+                    {% if entry.site_url %}
+                      <div class="muted">
+                        <a href="{{ entry.site_url }}" target="_blank" rel="noreferrer">{{ entry.site_url }}</a>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
               </td>
-              <td>{{ entry.login }}</td>
-              <td class="password-cell">
-                <span class="password-value is-hidden" data-password="{{ entry.password }}">{{ entry.password }}</span>
-                <button class="button" type="button" data-toggle-password>Показать</button>
-                <button class="button" type="button" data-copy>Копировать</button>
-              </td>
-              <td>{{ entry.updated_at }}</td>
+              <td>{{ entry.login or '—' }}</td>
               <td>
-                <div class="toolbar">
+                <div class="password-cell">
+                  <span class="password-value is-hidden" data-password="{{ entry.password }}">{{ entry.password }}</span>
+                  <div class="password-actions">
+                    <button class="button small" type="button" data-toggle-password>Показать</button>
+                    <button class="button small" type="button" data-copy>Копировать</button>
+                  </div>
+                </div>
+              </td>
+              <td class="muted">{{ entry.updated_at }}</td>
+              <td>
+                <div class="row-actions">
                   <a class="button" href="{{ url_for('edit_entry', entry_id=entry.id) }}">Изменить</a>
                   <a class="button" href="{{ url_for('entry_history', entry_id=entry.id) }}">История</a>
-                  <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}">
+                  <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}"
+                        onsubmit="return confirm('Удалить запись {{ entry.service_name|e }}?');">
                     <button class="button danger" type="submit">Удалить</button>
                   </form>
                 </div>
@@ -59,8 +73,10 @@
     </div>
   {% else %}
     <div class="empty">
+      <div class="icon-bubble">🔐</div>
       <h2>Записей пока нет</h2>
-      <p>Добавьте первый сервис, чтобы он появился в списке.</p>
+      <p>Сохраните первый сервис, чтобы быстро получать доступ к нему отсюда.</p>
+      <p><a class="button primary" href="{{ url_for('new_entry') }}">+ Добавить запись</a></p>
     </div>
   {% endif %}
 </section>

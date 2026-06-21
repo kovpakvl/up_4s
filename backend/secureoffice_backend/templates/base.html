@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}SecureOffice{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='cabinet.css') }}">
+    <script>
+      // Поднимаем сохранённую тему ДО первой отрисовки, чтобы не было мигания.
+      (function () {
+        try {
+          var saved = localStorage.getItem("secureoffice-theme");
+          if (saved === "light" || saved === "dark") {
+            document.documentElement.setAttribute("data-theme", saved);
+          }
+        } catch (e) { /* localStorage не доступен */ }
+      })();
+    </script>
   </head>
   <body>
     {% block body %}{% endblock %}

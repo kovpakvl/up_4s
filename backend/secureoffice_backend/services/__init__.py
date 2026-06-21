@@ -4,6 +4,7 @@ from .audit import AuditService
 from .employees import EmployeeActivationService
 from .errors import ServiceError
 from .passwords import PasswordEntryService
+from .profile import ProfileService
 
 __all__ = [
     "AdminPasswordEntryService",
@@ -11,6 +12,7 @@ __all__ = [
     "AuditService",
     "EmployeeActivationService",
     "PasswordEntryService",
+    "ProfileService",
     "ServiceError",
     "SetupService",
 ]

@@ -98,6 +98,21 @@ class AuthRepository:
             ).fetchone()
         return dict(row) if row else None
 
+    def update_display_name(self, user_id: int, display_name: str) -> dict[str, Any] | None:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                UPDATE users
+                SET display_name = %s
+                WHERE id = %s
+                RETURNING id, username, display_name, password_hash, salt,
+                          access_role, employee_id, is_active
+                """,
+                (display_name, user_id),
+            ).fetchone()
+            conn.commit()
+        return dict(row) if row else None
+
     def create_session(
         self,
         token_hash: str,

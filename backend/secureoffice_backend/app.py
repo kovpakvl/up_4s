@@ -16,6 +16,7 @@ from .services import (
     AuditService,
     EmployeeActivationService,
     PasswordEntryService,
+    ProfileService,
     SetupService,
 )
 
@@ -52,6 +53,7 @@ def create_app(
         cipher,
     )
     audit_service = AuditService(audit_repository)
+    profile_service = ProfileService(auth_repository, employee_repository)
     register_routes(
         app,
         setup_service,
@@ -60,6 +62,7 @@ def create_app(
         password_service,
         admin_password_service,
         audit_service,
+        profile_service,
     )
 
     return app

@@ -1,19 +1,38 @@
 {% extends "base.html" %}
 
 {% block body %}
+{% set initials = (user.display_name or '?')[0:1] %}
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">SO</div>
-      <div class="brand-name">SecureOffice</div>
+      <div>
+        <div class="brand-name">SecureOffice</div>
+        <div class="brand-sub">Кабинет сотрудника</div>
+      </div>
     </div>
     <div class="profile">
-      <div class="profile-name">{{ user.display_name }}</div>
-      <div class="profile-role">Сотрудник</div>
+      <div class="profile-avatar">{{ initials|upper }}</div>
+      <div>
+        <div class="profile-name">{{ user.display_name }}</div>
+        <div class="profile-role">Сотрудник</div>
+      </div>
     </div>
-    <form class="sidebar-actions" method="post" action="{{ url_for('web_logout') }}">
-      <button class="button full" type="submit">Выйти</button>
-    </form>
+    <nav class="side-nav">
+      <a class="side-nav-item {% if request.endpoint == 'cabinet' %}is-active{% endif %}"
+         href="{{ url_for('cabinet') }}">Мои пароли</a>
+      <a class="side-nav-item {% if request.endpoint == 'profile' %}is-active{% endif %}"
+         href="{{ url_for('profile') }}">Профиль</a>
+    </nav>
+    <div class="sidebar-actions">
+      <button class="button full" type="button" data-theme-toggle>
+        <span data-theme-label-dark>Светлая тема</span>
+        <span data-theme-label-light hidden>Тёмная тема</span>
+      </button>
+      <form method="post" action="{{ url_for('web_logout') }}" style="margin-top: 8px">
+        <button class="button full" type="submit">Выйти</button>
+      </form>
+    </div>
   </aside>
   <main class="content">
     {% include "_messages.html" %}

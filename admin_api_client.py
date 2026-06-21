@@ -67,6 +67,24 @@ class AdminApiClient:
         self.user = user
         return user
 
+    def me(self):
+        return self.request("GET", "/api/me")
+
+    def update_profile(
+        self,
+        display_name: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
+    ):
+        payload: dict = {}
+        if display_name is not None:
+            payload["display_name"] = display_name
+        if email is not None:
+            payload["email"] = email
+        if phone is not None:
+            payload["phone"] = phone
+        return self.request("PUT", "/api/me", payload)
+
     def employees(self):
         return self.request("GET", "/api/admin/employees")
 

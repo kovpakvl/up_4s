@@ -18,3 +18,10 @@ server_backups/
 .pytest_cache/
 .coverage
 htmlcov/
+
+build/
+dist/
+*.exe
+*.rar
+*.zip
+*.7z

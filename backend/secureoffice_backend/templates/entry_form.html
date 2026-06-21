@@ -6,28 +6,31 @@
 <header class="page-header">
   <div>
     <h1>{{ "Новая запись" if not entry else "Изменение записи" }}</h1>
-    <div class="muted">Сервис, URL, логин и пароль</div>
+    <div class="muted">Сервис, ссылка, логин и пароль</div>
   </div>
-  <a class="button" href="{{ url_for('cabinet') }}">Назад</a>
+  <a class="button" href="{{ url_for('cabinet') }}">← Назад</a>
 </header>
 
 <section class="panel">
   <form class="field-grid" method="post">
     <label>
       Сервис
-      <input name="service_name" value="{{ entry.service_name if entry else '' }}" required>
+      <input name="service_name" value="{{ entry.service_name if entry else '' }}" required autofocus>
     </label>
     <label>
-      URL
+      Ссылка
       <input name="site_url" value="{{ entry.site_url if entry else '' }}" placeholder="https://example.com">
     </label>
     <label>
       Логин
-      <input name="login" value="{{ entry.login if entry else '' }}">
+      <input name="login" value="{{ entry.login if entry else '' }}" autocomplete="off">
     </label>
     <label>
       Пароль
-      <input name="password" value="{{ entry.password if entry else '' }}" required>
+      <input id="password" name="password" value="{{ entry.password if entry else '' }}" required autocomplete="off">
+      <div class="strength" data-score="0" id="strength">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
     </label>
     <label>
       Комментарий
@@ -37,7 +40,10 @@
       <input name="is_favorite" type="checkbox" value="1" {% if entry and entry.is_favorite %}checked{% endif %}>
       Избранное
     </label>
-    <button class="button primary" type="submit">Сохранить</button>
+    <div class="toolbar">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{{ url_for('cabinet') }}">Отмена</a>
+    </div>
   </form>
 </section>
 {% endblock %}

@@ -4,10 +4,11 @@
 {% block auth_subtitle %}Регистрация по ключу{% endblock %}
 
 {% block auth_content %}
-<form class="field-grid" method="post">
+<form class="field-grid" method="post" autocomplete="on">
   <label>
     Ключ
-    <input name="code" autocomplete="one-time-code" required>
+    <input name="code" autocomplete="one-time-code" required autofocus
+           value="{{ request.args.get('code', '') }}">
   </label>
   <label>
     Логин

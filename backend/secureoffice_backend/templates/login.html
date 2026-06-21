@@ -4,10 +4,10 @@
 {% block auth_subtitle %}Кабинет сотрудника{% endblock %}
 
 {% block auth_content %}
-<form class="field-grid" method="post">
+<form class="field-grid" method="post" autocomplete="on">
   <label>
     Логин
-    <input name="username" autocomplete="username" required>
+    <input name="username" autocomplete="username" required autofocus>
   </label>
   <label>
     Пароль

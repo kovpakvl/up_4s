@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}Профиль · SecureOffice{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <h1>Мой профиль</h1>
+    <div class="muted">Имя и контакты, которые видит ваш администратор</div>
+  </div>
+  <a class="button" href="{{ url_for('cabinet') }}">← К паролям</a>
+</header>
+
+<section class="panel">
+  <div class="profile-summary">
+    <div class="profile-avatar profile-avatar-lg">{{ (profile.display_name or '?')[0:1]|upper }}</div>
+    <div>
+      <div class="profile-name-lg">{{ profile.display_name }}</div>
+      <div class="muted">Логин: <code>{{ profile.username }}</code></div>
+      {% if profile.employee and profile.employee.department_name %}
+        <div class="muted">Отдел: {{ profile.employee.department_name }}{% if profile.employee.position_name %} · {{ profile.employee.position_name }}{% endif %}</div>
+      {% endif %}
+      <div class="muted">Статус:
+        {% if profile.is_active %}
+          <span class="pill pill-success">Активен</span>
+        {% else %}
+          <span class="pill pill-warning">Отключён</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <form class="field-grid" method="post" autocomplete="off" style="margin-top: 22px">
+    <label>
+      Отображаемое имя
+      <input name="display_name" value="{{ profile.display_name }}" required>
+    </label>
+    {% if profile.employee %}
+      <label>
+        Email
+        <input name="email" type="email" value="{{ profile.employee.email or '' }}">
+      </label>
+      <label>
+        Телефон
+        <input name="phone" type="tel" value="{{ profile.employee.phone or '' }}">
+      </label>
+    {% endif %}
+    <div class="toolbar">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{{ url_for('cabinet') }}">Отмена</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
