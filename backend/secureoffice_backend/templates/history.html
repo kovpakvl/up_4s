@@ -25,7 +25,7 @@
         <tbody>
           {% for item in history %}
             <tr data-password-row>
-              <td>{{ item.created_at }}</td>
+              <td><time class="timestamp">{{ item.created_at|moscow_datetime }}</time></td>
               <td>
                 <div class="password-cell">
                   <span class="password-value is-hidden" data-password="{{ item.password }}">{{ item.password }}</span>

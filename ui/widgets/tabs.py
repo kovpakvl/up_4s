@@ -59,7 +59,8 @@ class TopTabs(ctk.CTkFrame):
             text_color=theme.palette_pair("text_muted"),
             hover_color=theme.color_pair(theme.LIGHT.surface, theme.DARK.surface_hi),
             corner_radius=theme.RADIUS.sm,
-            height=34,
+            height=38,
+            width=138,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             command=lambda k=spec.key: self.activate(k),
         )

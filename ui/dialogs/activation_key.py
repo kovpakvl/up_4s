@@ -17,6 +17,7 @@ from PIL import Image
 
 from .. import theme
 from ..assets.icons import icon as load_icon
+from ..time_utils import format_moscow_datetime
 from ..widgets.button import PrimaryButton, SecondaryButton
 from ..widgets.card import GhostCard, OutlineCard
 from .base_dialog import Dialog
@@ -39,6 +40,7 @@ def show_activation_key(
     expires_at: str,
     activation_url: str,
 ) -> None:
+    display_expires_at = format_moscow_datetime(expires_at)
     dialog = Dialog(
         app,
         title="Ключ активации сотрудника",
@@ -104,7 +106,7 @@ def show_activation_key(
 
     expires = ctk.CTkLabel(
         left,
-        text=f"Действует до: {expires_at}",
+        text=f"Действует до: {display_expires_at}",
         text_color=theme.palette_pair("text_muted"),
         font=ctk.CTkFont(family="Segoe UI", size=11),
         fg_color="transparent",
@@ -148,7 +150,7 @@ def show_activation_key(
             f"Активируйте свой доступ в SecureOffice:\n"
             f"• Ссылка: {activation_url}\n"
             f"• Код: {code}\n"
-            f"• Действует до: {expires_at}\n"
+            f"• Действует до: {display_expires_at}\n"
         )
         app.clipboard_clear()
         app.clipboard_append(text)

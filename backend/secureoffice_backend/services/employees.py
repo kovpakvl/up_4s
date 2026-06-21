@@ -5,6 +5,7 @@ from typing import Any
 from ..config import AppConfig
 from ..repositories import AuthRepository, EmployeeRepository
 from ..security import hash_password, hash_token, validate_password
+from ..time_utils import iso_moscow
 from .auth import public_user
 from .errors import ServiceError
 
@@ -132,12 +133,12 @@ class EmployeeActivationService:
             event_type="activation_key.created",
             entity_type="employee",
             entity_id=employee_id,
-            details={"key_id": key["id"], "expires_at": expires_at.isoformat()},
+            details={"key_id": key["id"], "expires_at": iso_moscow(expires_at)},
         )
         return {
             "code": code,
             "employee_id": employee_id,
-            "expires_at": expires_at.isoformat(),
+            "expires_at": iso_moscow(expires_at),
         }
 
     def _validate_employee_structure(

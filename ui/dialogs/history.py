@@ -4,6 +4,7 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from .. import theme
+from ..time_utils import format_moscow_datetime
 from ..widgets.button import PrimaryButton
 from .base_dialog import Dialog
 
@@ -41,7 +42,7 @@ def show_password_history(app, *, entry: dict, history: list[dict]) -> None:
             inner.pack(fill="x", padx=14, pady=10)
             ctk.CTkLabel(
                 inner,
-                text=item.get("created_at", ""),
+                text=format_moscow_datetime(item.get("created_at", "")),
                 text_color=theme.palette_pair("text_muted"),
                 font=ctk.CTkFont(family="Segoe UI", size=11),
                 fg_color="transparent",

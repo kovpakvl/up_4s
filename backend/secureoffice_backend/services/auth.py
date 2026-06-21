@@ -10,6 +10,7 @@ from ..security import (
     validate_password,
     verify_password,
 )
+from ..time_utils import iso_moscow
 from .errors import ServiceError
 
 
@@ -78,7 +79,7 @@ class AuthService:
         )
         return {
             "token": token,
-            "expires_at": expires_at.isoformat(),
+            "expires_at": iso_moscow(expires_at),
             "user": public_user(user),
         }
 

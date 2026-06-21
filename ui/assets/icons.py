@@ -41,9 +41,9 @@ def _shield(draw: ImageDraw.ImageDraw, size: int, color: str) -> None:
 
 def _users(draw: ImageDraw.ImageDraw, size: int, color: str) -> None:
     s = _stroke(size)
-    head_r = size * 0.13
-    cx1, cx2 = size * 0.38, size * 0.66
-    cy = size * 0.36
+    head_r = size * 0.115
+    cx1, cx2 = size * 0.38, size * 0.64
+    cy = size * 0.34
     draw.ellipse(
         [cx1 - head_r, cy - head_r, cx1 + head_r, cy + head_r],
         outline=color,
@@ -55,14 +55,14 @@ def _users(draw: ImageDraw.ImageDraw, size: int, color: str) -> None:
         width=s,
     )
     draw.arc(
-        [size * 0.18, size * 0.52, size * 0.58, size * 0.92],
+        [size * 0.2, size * 0.5, size * 0.58, size * 0.86],
         start=200,
         end=340,
         fill=color,
         width=s,
     )
     draw.arc(
-        [size * 0.46, size * 0.56, size * 0.86, size * 0.92],
+        [size * 0.44, size * 0.54, size * 0.82, size * 0.86],
         start=210,
         end=330,
         fill=color,

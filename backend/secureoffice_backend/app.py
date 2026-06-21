@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from flask import Flask
+from flask.json.provider import DefaultJSONProvider
 
 from .config import AppConfig
 from .crypto import PasswordCipher
 from .db import Database
+from .time_utils import format_moscow_datetime, iso_moscow
 from .repositories import (
     AuditRepository,
     AuthRepository,
@@ -21,6 +25,13 @@ from .services import (
 )
 
 
+class MoscowJSONProvider(DefaultJSONProvider):
+    def default(self, value):
+        if isinstance(value, datetime):
+            return iso_moscow(value)
+        return super().default(value)
+
+
 def create_app(
     config: AppConfig | None = None,
     database: Database | None = None,
@@ -29,9 +40,11 @@ def create_app(
     database = database or Database(config.database_url)
 
     app = Flask(__name__)
+    app.json = MoscowJSONProvider(app)
     app.secret_key = config.secret_key
     app.config["SECUREOFFICE_CONFIG"] = config
     app.extensions["secureoffice_database"] = database
+    app.jinja_env.filters["moscow_datetime"] = format_moscow_datetime
 
     auth_repository = AuthRepository(database)
     employee_repository = EmployeeRepository(database)

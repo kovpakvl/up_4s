@@ -55,7 +55,7 @@
                   </div>
                 </div>
               </td>
-              <td class="muted">{{ entry.updated_at }}</td>
+              <td class="muted"><time class="timestamp">{{ entry.updated_at|moscow_datetime }}</time></td>
               <td>
                 <div class="row-actions">
                   <a class="button" href="{{ url_for('edit_entry', entry_id=entry.id) }}">Изменить</a>

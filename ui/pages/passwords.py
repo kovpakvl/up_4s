@@ -170,7 +170,7 @@ class PasswordsTab(ctk.CTkFrame):
             text_color=theme.palette_pair("primary"),
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color="transparent",
-        ).pack(expand=True)
+        ).pack(expand=True, pady=(2, 0))
 
         name_block = ctk.CTkFrame(body, fg_color="transparent")
         name_block.grid(row=0, column=1, sticky="ew", padx=(14, 16))

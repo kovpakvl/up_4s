@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timezone
 from typing import Iterable, Optional
 
 import customtkinter as ctk
@@ -11,6 +10,7 @@ from admin_api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon
+from ..time_utils import seconds_since, to_moscow
 from ..widgets.badge import Badge
 from ..widgets.button import GhostButton, PrimaryButton, SecondaryButton
 from ..widgets.card import Card
@@ -33,15 +33,9 @@ _EVENT_LABELS = {
 
 
 def _format_time(value: str) -> str:
-    if not value:
-        return ""
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return value
-    now = datetime.now(timezone.utc)
-    delta = now - dt
-    seconds = int(delta.total_seconds())
+    seconds = seconds_since(value)
+    if seconds is None:
+        return str(value or "")
     if seconds < 60:
         return "только что"
     if seconds < 3600:
@@ -50,7 +44,8 @@ def _format_time(value: str) -> str:
         return f"{seconds // 3600} ч назад"
     if seconds < 604800:
         return f"{seconds // 86400} дн назад"
-    return dt.strftime("%d.%m.%Y %H:%M")
+    dt = to_moscow(value)
+    return f"{dt:%d.%m.%Y %H:%M} МСК" if dt else str(value or "")
 
 
 class OverviewTab(ctk.CTkScrollableFrame):
@@ -481,20 +476,14 @@ def _is_weak(password: str) -> bool:
 
 
 def _is_stale(timestamp: str) -> bool:
-    if not timestamp:
+    seconds = seconds_since(timestamp)
+    if seconds is None:
         return False
-    try:
-        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    return (datetime.now(timezone.utc) - dt).days > 90
+    return seconds > 90 * 86400
 
 
 def _is_today(timestamp: str) -> bool:
-    if not timestamp:
+    seconds = seconds_since(timestamp)
+    if seconds is None:
         return False
-    try:
-        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    return (datetime.now(timezone.utc) - dt).total_seconds() <= 86400
+    return seconds <= 86400

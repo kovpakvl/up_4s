@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timezone
 
 import customtkinter as ctk
 
@@ -10,6 +9,7 @@ from admin_api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon
+from ..time_utils import format_moscow_datetime, format_moscow_day, format_moscow_time
 from ..widgets.badge import Badge
 from ..widgets.button import SecondaryButton
 from ..widgets.card import Card
@@ -227,23 +227,11 @@ class AuditPage(Page):
 
 
 def _format_day(value: str) -> str:
-    if not value:
-        return ""
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return ""
-    return dt.strftime("%d %B %Y").lstrip("0")
+    return format_moscow_day(value)
 
 
 def _format_time(value: str) -> str:
-    if not value:
-        return ""
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return value
-    return dt.strftime("%H:%M")
+    return format_moscow_time(value)
 
 
 def _format_details(details: dict) -> str:
@@ -253,7 +241,7 @@ def _format_details(details: dict) -> str:
     if "name" in details:
         parts.append(f"Название: {details['name']}")
     if "expires_at" in details:
-        parts.append(f"Действует до: {details['expires_at']}")
+        parts.append(f"Действует до: {format_moscow_datetime(details['expires_at'])}")
     if "password_changed" in details:
         parts.append("Пароль изменён" if details["password_changed"] else "Пароль не менялся")
     return " · ".join(parts)
