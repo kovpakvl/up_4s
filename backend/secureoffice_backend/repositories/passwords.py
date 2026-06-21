@@ -21,6 +21,21 @@ class PasswordEntryRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def list_all_entries(self) -> list[dict[str, Any]]:
+        with self.database.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT p.id, p.employee_id, p.service_name, p.site_url, p.login,
+                       p.encrypted_password, p.comment, p.is_favorite,
+                       p.password_changed_at, p.created_at, p.updated_at,
+                       e.full_name AS employee_name
+                FROM password_entries p
+                JOIN employees e ON e.id = p.employee_id
+                ORDER BY p.updated_at DESC, p.id DESC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def get_entry(self, employee_id: int, entry_id: int) -> dict[str, Any] | None:
         with self.database.connection() as conn:
             row = conn.execute(
@@ -32,6 +47,22 @@ class PasswordEntryRepository:
                 WHERE id = %s AND employee_id = %s
                 """,
                 (entry_id, employee_id),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_entry_by_id(self, entry_id: int) -> dict[str, Any] | None:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT p.id, p.employee_id, p.service_name, p.site_url, p.login,
+                       p.encrypted_password, p.comment, p.is_favorite,
+                       p.password_changed_at, p.created_at, p.updated_at,
+                       e.full_name AS employee_name
+                FROM password_entries p
+                JOIN employees e ON e.id = p.employee_id
+                WHERE p.id = %s
+                """,
+                (entry_id,),
             ).fetchone()
         return dict(row) if row else None
 
@@ -125,6 +156,15 @@ class PasswordEntryRepository:
             conn.commit()
         return cursor.rowcount > 0
 
+    def delete_entry_by_id(self, entry_id: int) -> bool:
+        with self.database.connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM password_entries WHERE id = %s",
+                (entry_id,),
+            )
+            conn.commit()
+        return cursor.rowcount > 0
+
     def add_history(
         self,
         entry_id: int,
@@ -154,5 +194,20 @@ class PasswordEntryRepository:
                 ORDER BY h.created_at DESC, h.id DESC
                 """,
                 (entry_id, employee_id),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_history_by_entry_id(self, entry_id: int) -> list[dict[str, Any]]:
+        with self.database.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT h.id, h.entry_id, h.encrypted_password, h.created_at,
+                       u.display_name AS changed_by_name
+                FROM password_history h
+                LEFT JOIN users u ON u.id = h.changed_by
+                WHERE h.entry_id = %s
+                ORDER BY h.created_at DESC, h.id DESC
+                """,
+                (entry_id,),
             ).fetchall()
         return [dict(row) for row in rows]

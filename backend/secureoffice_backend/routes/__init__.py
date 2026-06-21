@@ -2,6 +2,8 @@ from flask import Flask
 
 from ..services import (
     AuthService,
+    AdminPasswordEntryService,
+    AuditService,
     EmployeeActivationService,
     PasswordEntryService,
     SetupService,
@@ -18,8 +20,16 @@ def register_routes(
     auth_service: AuthService,
     activation_service: EmployeeActivationService,
     password_service: PasswordEntryService,
+    admin_password_service: AdminPasswordEntryService,
+    audit_service: AuditService,
 ) -> None:
     register_health_routes(app, setup_service)
     register_auth_routes(app, setup_service, auth_service)
-    register_admin_routes(app, auth_service, activation_service)
+    register_admin_routes(
+        app,
+        auth_service,
+        activation_service,
+        admin_password_service,
+        audit_service,
+    )
     register_web_routes(app, auth_service, activation_service, password_service)

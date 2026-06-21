@@ -39,7 +39,7 @@ class PasswordEntryService:
 
     def create_entry(self, user: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
         employee_id = _employee_id(user)
-        values = _entry_values(data)
+        values = parse_entry_values(data)
         encrypted_password = self.cipher.encrypt(values["password"])
         entry = self.repository.create_entry(
             employee_id=employee_id,
@@ -71,7 +71,7 @@ class PasswordEntryService:
         if current is None:
             raise ServiceError("Запись не найдена.", 404)
 
-        values = _entry_values(data)
+        values = parse_entry_values(data)
         current_password = self.cipher.decrypt(current["encrypted_password"])
         password_changed = values["password"] != current_password
         encrypted_password = (
@@ -137,7 +137,7 @@ def _employee_id(user: dict[str, Any]) -> int:
     return int(user["employee_id"])
 
 
-def _entry_values(data: dict[str, Any]) -> dict[str, Any]:
+def parse_entry_values(data: dict[str, Any]) -> dict[str, Any]:
     service_name = str(data.get("service_name", "")).strip()
     password = str(data.get("password", ""))
     if not service_name:

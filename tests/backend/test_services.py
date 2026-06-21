@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta
 from secureoffice_backend.config import AppConfig
 from secureoffice_backend.security import hash_password
 from secureoffice_backend.services import (
+    AdminPasswordEntryService,
+    AuditService,
     AuthService,
     EmployeeActivationService,
     PasswordEntryService,
@@ -228,10 +230,22 @@ class FakePasswordRepository:
             if entry["employee_id"] == employee_id
         ]
 
+    def list_all_entries(self):
+        return [
+            {**entry, "employee_name": f"Employee {entry['employee_id']}"}
+            for entry in self.entries.values()
+        ]
+
     def get_entry(self, employee_id, entry_id):
         entry = self.entries.get(entry_id)
         if entry and entry["employee_id"] == employee_id:
             return entry
+        return None
+
+    def get_entry_by_id(self, entry_id):
+        entry = self.entries.get(entry_id)
+        if entry:
+            return {**entry, "employee_name": f"Employee {entry['employee_id']}"}
         return None
 
     def create_entry(
@@ -293,6 +307,12 @@ class FakePasswordRepository:
         del self.entries[entry_id]
         return True
 
+    def delete_entry_by_id(self, entry_id):
+        if entry_id not in self.entries:
+            return False
+        del self.entries[entry_id]
+        return True
+
     def add_history(self, entry_id, encrypted_password, changed_by):
         self.history.append(
             {
@@ -305,6 +325,9 @@ class FakePasswordRepository:
         )
 
     def list_history(self, employee_id, entry_id):
+        return [row for row in self.history if row["entry_id"] == entry_id]
+
+    def list_history_by_entry_id(self, entry_id):
         return [row for row in self.history if row["entry_id"] == entry_id]
 
 
@@ -352,3 +375,62 @@ def test_password_entry_service_manages_employee_entries():
     assert len(service.list_history(user, entry["id"])) == 2
     service.delete_entry(user, entry["id"])
     assert service.list_entries(user) == []
+
+
+def test_admin_password_service_bulk_creates_and_updates_entries():
+    auth_repository = FakeAuthRepository()
+    password_repository = FakePasswordRepository()
+    service = AdminPasswordEntryService(password_repository, auth_repository, FakeCipher())
+    admin = {"id": 1, "access_role": "admin"}
+
+    created = service.create_entries(
+        admin,
+        {
+            "employee_ids": [10, 11],
+            "service_name": "Portal",
+            "site_url": "https://portal.example.test",
+            "login": "common",
+            "password": "PortalPass123!",
+        },
+    )
+    updated = service.update_entry(
+        admin,
+        created[0]["id"],
+        {
+            "service_name": "Portal",
+            "site_url": "https://portal.example.test",
+            "login": "common",
+            "password": "NewPortalPass123!",
+        },
+    )
+
+    assert len(created) == 2
+    assert service.list_entries(admin)[0]["password"] == "NewPortalPass123!"
+    assert updated["password"] == "NewPortalPass123!"
+    assert len(service.list_history(admin, created[0]["id"])) == 2
+    service.delete_entry(admin, created[1]["id"])
+    assert len(service.list_entries(admin)) == 1
+    assert auth_repository.audit_events[-1]["event_type"] == "password_entry.deleted"
+
+
+class FakeAuditRepository:
+    def list_events(self, limit=200):
+        return [
+            {
+                "id": 1,
+                "event_type": "auth.login",
+                "entity_type": "user",
+                "entity_id": 1,
+                "details": {},
+            }
+        ][:limit]
+
+
+def test_audit_service_allows_only_admins():
+    service = AuditService(FakeAuditRepository())
+
+    assert service.list_events({"id": 1, "access_role": "admin"})[0]["event_type"] == "auth.login"
+    with pytest.raises(ServiceError) as exc_info:
+        service.list_events({"id": 2, "access_role": "employee"})
+
+    assert exc_info.value.status_code == 403

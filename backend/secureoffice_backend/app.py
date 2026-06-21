@@ -3,10 +3,17 @@ from flask import Flask
 from .config import AppConfig
 from .crypto import PasswordCipher
 from .db import Database
-from .repositories import AuthRepository, EmployeeRepository, PasswordEntryRepository
+from .repositories import (
+    AuditRepository,
+    AuthRepository,
+    EmployeeRepository,
+    PasswordEntryRepository,
+)
 from .routes import register_routes
 from .services import (
     AuthService,
+    AdminPasswordEntryService,
+    AuditService,
     EmployeeActivationService,
     PasswordEntryService,
     SetupService,
@@ -28,6 +35,7 @@ def create_app(
     auth_repository = AuthRepository(database)
     employee_repository = EmployeeRepository(database)
     password_repository = PasswordEntryRepository(database)
+    audit_repository = AuditRepository(database)
     cipher = PasswordCipher(config.fernet_key)
 
     setup_service = SetupService(auth_repository)
@@ -38,12 +46,20 @@ def create_app(
         config,
     )
     password_service = PasswordEntryService(password_repository, auth_repository, cipher)
+    admin_password_service = AdminPasswordEntryService(
+        password_repository,
+        auth_repository,
+        cipher,
+    )
+    audit_service = AuditService(audit_repository)
     register_routes(
         app,
         setup_service,
         auth_service,
         activation_service,
         password_service,
+        admin_password_service,
+        audit_service,
     )
 
     return app

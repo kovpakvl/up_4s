@@ -82,3 +82,62 @@ class AdminApiClient:
             "POST",
             f"/api/admin/employees/{employee_id}/activation-key",
         )
+
+    def password_entries(self):
+        return self.request("GET", "/api/admin/password-entries")
+
+    def create_password_entries(
+        self,
+        employee_ids: list[int],
+        service_name: str,
+        site_url: str,
+        login: str,
+        password: str,
+        comment: str = "",
+        is_favorite: bool = False,
+    ):
+        return self.request(
+            "POST",
+            "/api/admin/password-entries",
+            {
+                "employee_ids": employee_ids,
+                "service_name": service_name,
+                "site_url": site_url,
+                "login": login,
+                "password": password,
+                "comment": comment,
+                "is_favorite": is_favorite,
+            },
+        )
+
+    def update_password_entry(
+        self,
+        entry_id: int,
+        service_name: str,
+        site_url: str,
+        login: str,
+        password: str,
+        comment: str = "",
+        is_favorite: bool = False,
+    ):
+        return self.request(
+            "PUT",
+            f"/api/admin/password-entries/{entry_id}",
+            {
+                "service_name": service_name,
+                "site_url": site_url,
+                "login": login,
+                "password": password,
+                "comment": comment,
+                "is_favorite": is_favorite,
+            },
+        )
+
+    def delete_password_entry(self, entry_id: int):
+        return self.request("DELETE", f"/api/admin/password-entries/{entry_id}")
+
+    def password_history(self, entry_id: int):
+        return self.request("GET", f"/api/admin/password-entries/{entry_id}/history")
+
+    def audit_events(self, limit: int = 200):
+        return self.request("GET", "/api/admin/audit-events", params={"limit": limit})
