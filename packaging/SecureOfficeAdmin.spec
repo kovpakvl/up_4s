@@ -2,15 +2,18 @@
 """PyInstaller spec for SecureOffice Admin Console."""
 
 from pathlib import Path
+from sysconfig import get_paths
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 
 ROOT = Path(SPECPATH).resolve().parent
+PYTHON_BASE = Path(get_paths()["stdlib"]).parents[0]
 
 datas = []
 datas += collect_data_files("customtkinter")
-datas += collect_data_files("CTkMessagebox")
 datas += collect_data_files("qrcode")
+if (PYTHON_BASE / "tcl").exists():
+    datas += [(str(PYTHON_BASE / "tcl"), "tcl")]
 datas += [(str(ROOT / "docker-compose.yml"), ".")]
 datas += [(str(ROOT / "backend" / "Dockerfile"), "backend")]
 datas += [(str(ROOT / "backend" / "requirements.txt"), "backend")]
@@ -19,19 +22,25 @@ for path in (ROOT / "backend" / "secureoffice_backend").rglob("*"):
     if path.is_file():
         datas.append((str(path), str(path.parent.relative_to(ROOT))))
 
-hiddenimports = []
+binaries = []
+for dll_name in ("tcl86t.dll", "tk86t.dll"):
+    dll_path = PYTHON_BASE / "DLLs" / dll_name
+    if dll_path.exists():
+        binaries.append((str(dll_path), "."))
+
+hiddenimports = ["tkinter"]
 hiddenimports += collect_submodules("PIL")
-hiddenimports += collect_submodules("qrcode")
+hiddenimports += ["qrcode.image.pil"]
 
 a = Analysis(
     [str(ROOT / "admin_app.py")],
     pathex=[str(ROOT)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[str(ROOT / "packaging" / "runtime_hooks" / "tcl_tk.py")],
     excludes=["pytest", "pyinstaller"],
     noarchive=False,
     optimize=0,
