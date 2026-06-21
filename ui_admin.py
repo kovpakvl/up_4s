@@ -95,7 +95,6 @@ class AdminApp(tk.Tk):
         self._build_auth_panel("loading")
 
         self.work_frame = ttk.Frame(self.content)
-        self.work_frame.pack(fill="both", expand=True)
         self.tabs = ttk.Notebook(self.work_frame)
         self.tabs.pack(fill="both", expand=True)
         self.employees_tab = ttk.Frame(self.tabs, padding=14)
@@ -134,8 +133,14 @@ class AdminApp(tk.Tk):
         if mode == "loading":
             ttk.Label(self.auth_frame, text="Проверяю сервер...").pack(anchor="w")
             return
+        if mode == "offline":
+            ttk.Label(
+                self.auth_frame,
+                text="Сервер недоступен. Запустите сервер или проверьте Docker.",
+            ).pack(anchor="w")
+            return
 
-        title = "Создание первого администратора" if mode == "setup" else "Вход администратора"
+        title = "Создать аккаунт администратора" if mode == "setup" else "Вход администратора"
         ttk.Label(self.auth_frame, text=title, style="Panel.TLabel").grid(
             row=0, column=0, columnspan=4, sticky="w", pady=(0, 10)
         )
@@ -150,7 +155,7 @@ class AdminApp(tk.Tk):
         if mode == "setup":
             self._labeled_entry(self.auth_frame, row, "Повтор", self.repeat_var, secret=True)
             row += 1
-        button_text = "Создать администратора" if mode == "setup" else "Войти"
+        button_text = "Создать аккаунт" if mode == "setup" else "Войти"
         ttk.Button(
             self.auth_frame,
             text=button_text,
@@ -347,10 +352,10 @@ class AdminApp(tk.Tk):
             try:
                 result = action()
             except Exception as exc:
-                self.after(0, lambda: self._show_error(exc))
+                self.after(0, lambda error=exc: self._show_error(error))
                 return
             if on_success:
-                self.after(0, lambda: on_success(result))
+                self.after(0, lambda value=result: on_success(value))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -369,8 +374,15 @@ class AdminApp(tk.Tk):
         self._check_server()
 
     def _check_server(self) -> None:
+        was_authenticated = bool(self.client and self.client.token)
+        token = self.client.token if self.client else None
+        user = self.client.user if self.client else None
         self.client = AdminApiClient(self.server_url_var.get())
+        self.client.token = token
+        self.client.user = user
         self.status_var.set("Проверяю сервер...")
+        if not was_authenticated:
+            self._show_auth_gate("loading")
 
         def request_status():
             return self.client.status()
@@ -382,7 +394,8 @@ class AdminApp(tk.Tk):
                 if initialized
                 else "Сервер работает. Нужен первый администратор."
             )
-            self._build_auth_panel("login" if initialized else "setup")
+            if not was_authenticated:
+                self._show_auth_gate("login" if initialized else "setup")
 
         self._run_background(request_status, apply_status)
 
@@ -396,15 +409,15 @@ class AdminApp(tk.Tk):
                 if password != self.repeat_var.get():
                     raise AdminApiError("Пароли не совпадают.")
                 self.client.setup_admin(username, self.display_name_var.get().strip(), password)
-                messagebox.showinfo("Администратор", "Администратор создан. Выполните вход.")
-                self._build_auth_panel("login")
+                messagebox.showinfo("Администратор", "Аккаунт создан. Выполните вход.")
+                self._show_auth_gate("login")
                 return
             self.client.login(username, password)
         except AdminApiError as exc:
             messagebox.showerror("Администратор", str(exc), parent=self)
             return
         self.status_var.set(f"Вход выполнен: {self.client.user.get('display_name')}")
-        self._set_work_enabled(True)
+        self._show_workspace()
         self._load_employees()
         self._load_password_entries()
         self._load_audit_events()
@@ -654,6 +667,19 @@ class AdminApp(tk.Tk):
         for child in self.work_frame.winfo_children():
             self._set_widget_state(child, state)
 
+    def _show_auth_gate(self, mode: str) -> None:
+        self._set_work_enabled(False)
+        self.work_frame.pack_forget()
+        if not self.auth_frame.winfo_ismapped():
+            self.auth_frame.pack(fill="x", pady=(0, 16))
+        self._build_auth_panel(mode)
+
+    def _show_workspace(self) -> None:
+        self.auth_frame.pack_forget()
+        if not self.work_frame.winfo_ismapped():
+            self.work_frame.pack(fill="both", expand=True)
+        self._set_work_enabled(True)
+
     def _set_widget_state(self, widget: tk.Misc, state: str) -> None:
         try:
             widget.configure(state=state)
@@ -664,6 +690,8 @@ class AdminApp(tk.Tk):
 
     def _show_error(self, exc: Exception) -> None:
         if isinstance(exc, (AdminApiError, ServerCommandError)):
+            self.client = None
+            self._show_auth_gate("offline")
             messagebox.showerror("SecureOffice", str(exc), parent=self)
             self.status_var.set(str(exc))
             return
