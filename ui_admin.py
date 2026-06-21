@@ -1,7 +1,6 @@
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
-import json
 
 from admin_api_client import AdminApiClient, AdminApiError
 from admin_server_control import ComposeServerController, ServerCommandError, local_server_url
@@ -28,6 +27,11 @@ class AdminApp(tk.Tk):
         self.employee_name_var = tk.StringVar()
         self.employee_email_var = tk.StringVar()
         self.employee_phone_var = tk.StringVar()
+        self.employee_department_var = tk.StringVar(value="Без отдела")
+        self.employee_position_var = tk.StringVar(value="Без должности")
+        self.department_name_var = tk.StringVar()
+        self.position_name_var = tk.StringVar()
+        self.position_department_var = tk.StringVar(value="")
         self.activation_key_var = tk.StringVar(value="")
         self.entry_service_var = tk.StringVar()
         self.entry_url_var = tk.StringVar()
@@ -40,6 +44,9 @@ class AdminApp(tk.Tk):
         self.can_setup_admin = False
         self.auth_tabs: ttk.Notebook | None = None
         self.employees: list[dict] = []
+        self.departments: list[dict] = []
+        self.department_by_label: dict[str, int | None] = {}
+        self.position_by_label: dict[str, int | None] = {}
         self.password_entries: list[dict] = []
 
         self._build_layout()
@@ -84,7 +91,10 @@ class AdminApp(tk.Tk):
             anchor="w"
         )
         self._readonly_entry(sidebar, self.lan_url_var).pack(fill="x", pady=(4, 8))
-        ttk.Button(sidebar, text="Скопировать ссылку", command=self._copy_lan_url).pack(
+        ttk.Button(sidebar, text="Скопировать вход", command=self._copy_employee_login_url).pack(
+            fill="x", pady=(0, 8)
+        )
+        ttk.Button(sidebar, text="Скопировать активацию", command=self._copy_employee_activate_url).pack(
             fill="x"
         )
 
@@ -289,22 +299,69 @@ class AdminApp(tk.Tk):
             self.auth_tabs.select(0)
 
     def _build_employee_panel(self) -> None:
-        form = ttk.Frame(self.employees_tab)
+        structure = ttk.LabelFrame(
+            self.employees_tab,
+            text="Отделы и должности",
+            padding=14,
+        )
+        structure.pack(fill="x", pady=(0, 14))
+        self._labeled_entry(structure, 0, "Отдел", self.department_name_var)
+        ttk.Button(
+            structure,
+            text="Добавить отдел",
+            style="Accent.TButton",
+            command=self._create_department,
+        ).grid(row=0, column=2, sticky="ew", padx=(12, 0), pady=5)
+        ttk.Label(structure, text="Для отдела").grid(row=1, column=0, sticky="w", pady=5)
+        self.position_department_combo = ttk.Combobox(
+            structure,
+            textvariable=self.position_department_var,
+            state="readonly",
+            width=28,
+        )
+        self.position_department_combo.grid(row=1, column=1, sticky="ew", padx=(12, 0), pady=5)
+        self._labeled_entry(structure, 2, "Должность", self.position_name_var)
+        ttk.Button(
+            structure,
+            text="Добавить должность",
+            command=self._create_position,
+        ).grid(row=2, column=2, sticky="ew", padx=(12, 0), pady=5)
+        structure.columnconfigure(1, weight=1)
+
+        form = ttk.LabelFrame(self.employees_tab, text="Сотрудник", padding=14)
         form.pack(fill="x", pady=(0, 14))
         self._labeled_entry(form, 0, "ФИО", self.employee_name_var)
         self._labeled_entry(form, 1, "Email", self.employee_email_var)
         self._labeled_entry(form, 2, "Телефон", self.employee_phone_var)
+        ttk.Label(form, text="Отдел").grid(row=0, column=2, sticky="w", padx=(20, 8), pady=5)
+        self.employee_department_combo = ttk.Combobox(
+            form,
+            textvariable=self.employee_department_var,
+            state="readonly",
+            width=24,
+        )
+        self.employee_department_combo.grid(row=0, column=3, sticky="ew", pady=5)
+        self.employee_department_combo.bind("<<ComboboxSelected>>", self._refresh_position_choices)
+        ttk.Label(form, text="Должность").grid(row=1, column=2, sticky="w", padx=(20, 8), pady=5)
+        self.employee_position_combo = ttk.Combobox(
+            form,
+            textvariable=self.employee_position_var,
+            state="readonly",
+            width=24,
+        )
+        self.employee_position_combo.grid(row=1, column=3, sticky="ew", pady=5)
         ttk.Button(
             form,
-            text="Добавить сотрудника",
+            text="Добавить и выдать ключ",
             style="Accent.TButton",
             command=self._create_employee,
-        ).grid(row=3, column=1, sticky="ew", pady=(10, 0))
+        ).grid(row=3, column=1, columnspan=3, sticky="ew", pady=(10, 0))
         form.columnconfigure(1, weight=1)
+        form.columnconfigure(3, weight=1)
 
         table_frame = ttk.Frame(self.employees_tab)
         table_frame.pack(fill="both", expand=True)
-        columns = ("name", "email", "phone", "status", "key")
+        columns = ("name", "department", "position", "email", "phone", "status", "key")
         self.employee_tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -313,6 +370,8 @@ class AdminApp(tk.Tk):
         )
         headings = {
             "name": "ФИО",
+            "department": "Отдел",
+            "position": "Должность",
             "email": "Email",
             "phone": "Телефон",
             "status": "Статус",
@@ -320,7 +379,8 @@ class AdminApp(tk.Tk):
         }
         for column, text in headings.items():
             self.employee_tree.heading(column, text=text)
-            self.employee_tree.column(column, width=160 if column != "name" else 240)
+            width = 220 if column == "name" else 145
+            self.employee_tree.column(column, width=width)
         self.employee_tree.pack(side="left", fill="both", expand=True)
         scrollbar = ttk.Scrollbar(table_frame, command=self.employee_tree.yview)
         scrollbar.pack(side="right", fill="y")
@@ -333,7 +393,7 @@ class AdminApp(tk.Tk):
         )
         ttk.Button(
             actions,
-            text="Создать ключ",
+            text="Новый ключ",
             style="Accent.TButton",
             command=self._create_activation_key,
         ).pack(side="left", padx=(8, 0))
@@ -546,6 +606,7 @@ class AdminApp(tk.Tk):
             return
         self.status_var.set(f"Вход выполнен: {self.client.user.get('display_name')}")
         self._show_workspace()
+        self._load_departments()
         self._load_employees()
         self._load_password_entries()
         self._load_audit_events()
@@ -665,20 +726,107 @@ class AdminApp(tk.Tk):
     def _create_employee(self) -> None:
         if not self.client:
             return
+        department_id = self._selected_department_id(self.employee_department_var.get())
+        position_id = self._selected_position_id(self.employee_position_var.get())
         try:
             employee = self.client.create_employee(
                 self.employee_name_var.get(),
                 self.employee_email_var.get(),
                 self.employee_phone_var.get(),
+                department_id=department_id,
+                position_id=position_id,
             )
+            key_payload = self.client.create_activation_key(int(employee["id"]))
         except AdminApiError as exc:
             messagebox.showerror("Сотрудник", str(exc), parent=self)
             return
         self.employee_name_var.set("")
         self.employee_email_var.set("")
         self.employee_phone_var.set("")
+        self.employee_department_var.set("Без отдела")
+        self.employee_position_var.set("Без должности")
+        self._refresh_position_choices()
         self.status_var.set(f"Сотрудник добавлен: {employee['full_name']}")
+        self._show_activation_key(key_payload, employee)
         self._load_employees()
+
+    def _load_departments(self) -> None:
+        if not self.client or not self.client.token:
+            return
+        try:
+            self.departments = self.client.departments()
+        except AdminApiError as exc:
+            messagebox.showerror("Отделы", str(exc), parent=self)
+            return
+        self._refresh_department_choices()
+
+    def _create_department(self) -> None:
+        if not self.client:
+            return
+        try:
+            department = self.client.create_department(self.department_name_var.get())
+        except AdminApiError as exc:
+            messagebox.showerror("Отдел", str(exc), parent=self)
+            return
+        self.department_name_var.set("")
+        self.status_var.set(f"Отдел сохранён: {department['name']}")
+        self._load_departments()
+        self._load_audit_events()
+
+    def _create_position(self) -> None:
+        if not self.client:
+            return
+        department_id = self._selected_department_id(self.position_department_var.get())
+        if department_id is None:
+            messagebox.showinfo("Должность", "Выберите отдел.", parent=self)
+            return
+        try:
+            position = self.client.create_position(department_id, self.position_name_var.get())
+        except AdminApiError as exc:
+            messagebox.showerror("Должность", str(exc), parent=self)
+            return
+        self.position_name_var.set("")
+        self.status_var.set(f"Должность сохранена: {position['name']}")
+        self._load_departments()
+        self._load_audit_events()
+
+    def _refresh_department_choices(self) -> None:
+        labels = ["Без отдела"]
+        self.department_by_label = {"Без отдела": None}
+        for department in self.departments:
+            label = department["name"]
+            labels.append(label)
+            self.department_by_label[label] = int(department["id"])
+
+        for combo in (self.employee_department_combo, self.position_department_combo):
+            combo.configure(values=labels)
+
+        if self.employee_department_var.get() not in labels:
+            self.employee_department_var.set("Без отдела")
+        if self.position_department_var.get() not in labels:
+            self.position_department_var.set(labels[1] if len(labels) > 1 else "Без отдела")
+        self._refresh_position_choices()
+
+    def _refresh_position_choices(self, _event=None) -> None:
+        department_id = self._selected_department_id(self.employee_department_var.get())
+        labels = ["Без должности"]
+        self.position_by_label = {"Без должности": None}
+        for department in self.departments:
+            if department_id and int(department["id"]) != department_id:
+                continue
+            for position in department.get("positions", []):
+                label = f"{position['name']} ({department['name']})"
+                labels.append(label)
+                self.position_by_label[label] = int(position["id"])
+        self.employee_position_combo.configure(values=labels)
+        if self.employee_position_var.get() not in labels:
+            self.employee_position_var.set("Без должности")
+
+    def _selected_department_id(self, label: str) -> int | None:
+        return self.department_by_label.get(label)
+
+    def _selected_position_id(self, label: str) -> int | None:
+        return self.position_by_label.get(label)
 
     def _load_employees(self) -> None:
         if not self.client or not self.client.token:
@@ -697,6 +845,8 @@ class AdminApp(tk.Tk):
                 iid=str(employee["id"]),
                 values=(
                     employee["full_name"],
+                    employee.get("department_name") or "—",
+                    employee.get("position_name") or "—",
                     employee.get("email", ""),
                     employee.get("phone", ""),
                     "Активирован" if employee.get("has_user") else "Ожидает ключ",
@@ -718,11 +868,62 @@ class AdminApp(tk.Tk):
         except AdminApiError as exc:
             messagebox.showerror("Ключ", str(exc), parent=self)
             return
-        code = payload["code"]
-        self.activation_key_var.set(f"Ключ: {code}")
-        self._copy_text(code)
-        self.status_var.set("Ключ создан и скопирован в буфер.")
+        employee = next(
+            (item for item in self.employees if int(item["id"]) == employee_id),
+            {"id": employee_id, "full_name": f"#{employee_id}"},
+        )
+        self._show_activation_key(payload, employee)
         self._load_employees()
+
+    def _show_activation_key(self, payload: dict, employee: dict) -> None:
+        code = payload["code"]
+        activation_url = self._employee_activate_url()
+        message = (
+            f"Сотрудник: {employee.get('full_name', '')}\n"
+            f"Ссылка: {activation_url}\n"
+            f"Ключ: {code}\n"
+            f"Действует до: {payload.get('expires_at', '')}"
+        )
+        self.activation_key_var.set(f"Ключ: {code}")
+        self._copy_text(message)
+        self.status_var.set("Ключ и ссылка активации скопированы в буфер.")
+
+        dialog = self._dialog("Ключ сотрудника", 560, 330)
+        panel = ttk.Frame(dialog, padding=26, style="Panel.TFrame")
+        panel.pack(fill="both", expand=True)
+        ttk.Label(panel, text="Ключ сотрудника", style="AuthTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            panel,
+            text=employee.get("full_name", ""),
+            style="AuthMuted.TLabel",
+        ).pack(anchor="w", pady=(4, 18))
+
+        body = tk.Text(panel, height=6, wrap="word")
+        body.pack(fill="both", expand=True)
+        body.insert("1.0", message)
+        body.configure(state="disabled")
+        body.configure(
+            background=COLORS["panel_soft"],
+            foreground=COLORS["text"],
+            relief="flat",
+            padx=10,
+            pady=8,
+        )
+
+        actions = ttk.Frame(panel, style="Panel.TFrame")
+        actions.pack(fill="x", pady=(18, 0))
+        ttk.Button(
+            actions,
+            text="Скопировать ещё раз",
+            command=lambda: self._copy_text(message),
+        ).pack(side="left")
+        ttk.Button(
+            actions,
+            text="Готово",
+            style="Accent.TButton",
+            command=dialog.destroy,
+        ).pack(side="right")
+        dialog.wait_window()
 
     def _selected_employee_ids(self) -> list[int]:
         ids = []
@@ -874,7 +1075,6 @@ class AdminApp(tk.Tk):
             return
         self.audit_tree.delete(*self.audit_tree.get_children())
         for event in events:
-            details = event.get("details") or {}
             self.audit_tree.insert(
                 "",
                 "end",
@@ -882,9 +1082,9 @@ class AdminApp(tk.Tk):
                 values=(
                     event.get("created_at", ""),
                     event.get("actor_name") or event.get("actor_username") or "Система",
-                    event.get("event_type", ""),
-                    f"{event.get('entity_type', '')} #{event.get('entity_id') or ''}",
-                    json.dumps(details, ensure_ascii=False),
+                    _audit_event_label(event),
+                    _audit_entity_label(event),
+                    _audit_details_text(event),
                 ),
             )
 
@@ -894,9 +1094,19 @@ class AdminApp(tk.Tk):
             self._copy_text(value)
             self.status_var.set("Ключ скопирован.")
 
-    def _copy_lan_url(self) -> None:
-        self._copy_text(self.lan_url_var.get())
-        self.status_var.set("Ссылка скопирована.")
+    def _employee_login_url(self) -> str:
+        return f"{self.lan_url_var.get().rstrip('/')}/login"
+
+    def _employee_activate_url(self) -> str:
+        return f"{self.lan_url_var.get().rstrip('/')}/activate"
+
+    def _copy_employee_login_url(self) -> None:
+        self._copy_text(self._employee_login_url())
+        self.status_var.set("Ссылка на вход сотрудника скопирована.")
+
+    def _copy_employee_activate_url(self) -> None:
+        self._copy_text(self._employee_activate_url())
+        self.status_var.set("Ссылка на активацию сотрудника скопирована.")
 
     def _copy_text(self, value: str) -> None:
         self.clipboard_clear()
@@ -950,3 +1160,61 @@ def _key_status(employee: dict) -> str:
     if employee.get("activation_expires_at"):
         return f"До {employee['activation_expires_at']}"
     return "Нет"
+
+
+def _audit_event_label(event: dict) -> str:
+    labels = {
+        "admin.created": "Создан администратор",
+        "auth.login": "Вход в систему",
+        "auth.login_failed": "Неудачная попытка входа",
+        "department.created": "Добавлен отдел",
+        "position.created": "Добавлена должность",
+        "employee.created": "Добавлен сотрудник",
+        "activation_key.created": "Выдан ключ сотруднику",
+        "employee.activated": "Сотрудник активировал аккаунт",
+        "password_entry.created": "Добавлена запись пароля",
+        "password_entry.updated": "Изменена запись пароля",
+        "password_entry.deleted": "Удалена запись пароля",
+    }
+    event_type = event.get("event_type", "")
+    return labels.get(event_type, event_type.replace("_", " ").replace(".", ": "))
+
+
+def _audit_entity_label(event: dict) -> str:
+    labels = {
+        "user": "Пользователь",
+        "employee": "Сотрудник",
+        "department": "Отдел",
+        "position": "Должность",
+        "password_entry": "Пароль",
+    }
+    entity_type = event.get("entity_type", "")
+    entity_name = labels.get(entity_type, entity_type or "Объект")
+    entity_id = event.get("entity_id")
+    return f"{entity_name} #{entity_id}" if entity_id else entity_name
+
+
+def _audit_details_text(event: dict) -> str:
+    details = event.get("details") or {}
+    if not details:
+        return ""
+    parts = []
+    if "name" in details:
+        parts.append(f"Название: {details['name']}")
+    if "expires_at" in details:
+        parts.append(f"Действует до: {details['expires_at']}")
+    if "password_changed" in details:
+        parts.append("Пароль изменён" if details["password_changed"] else "Пароль не менялся")
+    if details.get("created_by_admin"):
+        parts.append("Создано администратором")
+    if details.get("updated_by_admin"):
+        parts.append("Изменено администратором")
+    if details.get("deleted_by_admin"):
+        parts.append("Удалено администратором")
+    if "department_id" in details and details["department_id"]:
+        parts.append(f"Отдел #{details['department_id']}")
+    if "position_id" in details and details["position_id"]:
+        parts.append(f"Должность #{details['position_id']}")
+    if "employee_id" in details and details["employee_id"]:
+        parts.append(f"Сотрудник #{details['employee_id']}")
+    return "; ".join(parts)

@@ -13,15 +13,17 @@ class EmployeeRepository:
         full_name: str,
         email: str = "",
         phone: str = "",
+        department_id: int | None = None,
+        position_id: int | None = None,
     ) -> dict[str, Any]:
         with self.database.connection() as conn:
             row = conn.execute(
                 """
-                INSERT INTO employees(full_name, email, phone)
-                VALUES (%s, %s, %s)
-                RETURNING id, full_name, email, phone, status
+                INSERT INTO employees(full_name, email, phone, department_id, position_id)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, full_name, email, phone, department_id, position_id, status
                 """,
-                (full_name, email, phone),
+                (full_name, email, phone, department_id, position_id),
             ).fetchone()
             conn.commit()
         return dict(row)
@@ -31,11 +33,16 @@ class EmployeeRepository:
             rows = conn.execute(
                 """
                 SELECT e.id, e.full_name, e.email, e.phone, e.status,
+                       e.department_id, e.position_id,
+                       d.name AS department_name,
+                       p.name AS position_name,
                        e.created_at, e.updated_at,
                        u.id IS NOT NULL AS has_user,
                        latest_key.expires_at AS activation_expires_at,
                        latest_key.used_at AS activation_used_at
                 FROM employees e
+                LEFT JOIN departments d ON d.id = e.department_id
+                LEFT JOIN positions p ON p.id = e.position_id
                 LEFT JOIN users u ON u.employee_id = e.id
                 LEFT JOIN LATERAL (
                     SELECT expires_at, used_at
@@ -48,6 +55,79 @@ class EmployeeRepository:
                 """
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def list_departments(self) -> list[dict[str, Any]]:
+        with self.database.connection() as conn:
+            departments = conn.execute(
+                """
+                SELECT id, name, created_at
+                FROM departments
+                ORDER BY name
+                """
+            ).fetchall()
+            positions = conn.execute(
+                """
+                SELECT id, department_id, name, created_at
+                FROM positions
+                ORDER BY name
+                """
+            ).fetchall()
+        grouped: dict[int, list[dict[str, Any]]] = {}
+        for position in positions:
+            item = dict(position)
+            grouped.setdefault(item["department_id"], []).append(item)
+        return [
+            {**dict(department), "positions": grouped.get(department["id"], [])}
+            for department in departments
+        ]
+
+    def create_department(self, name: str) -> dict[str, Any]:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                INSERT INTO departments(name)
+                VALUES (%s)
+                ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                RETURNING id, name, created_at
+                """,
+                (name,),
+            ).fetchone()
+            conn.commit()
+        return {**dict(row), "positions": []}
+
+    def create_position(self, department_id: int, name: str) -> dict[str, Any]:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                INSERT INTO positions(department_id, name)
+                VALUES (%s, %s)
+                ON CONFLICT (department_id, name) DO UPDATE SET name = EXCLUDED.name
+                RETURNING id, department_id, name, created_at
+                """,
+                (department_id, name),
+            ).fetchone()
+            conn.commit()
+        return dict(row)
+
+    def department_exists(self, department_id: int) -> bool:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM departments WHERE id = %s LIMIT 1",
+                (department_id,),
+            ).fetchone()
+        return row is not None
+
+    def find_position(self, position_id: int) -> dict[str, Any] | None:
+        with self.database.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT id, department_id, name
+                FROM positions
+                WHERE id = %s
+                """,
+                (position_id,),
+            ).fetchone()
+        return dict(row) if row else None
 
     def employee_has_user(self, employee_id: int) -> bool:
         with self.database.connection() as conn:

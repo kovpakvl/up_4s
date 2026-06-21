@@ -117,16 +117,31 @@ def test_auth_service_login_rejects_wrong_password():
 class FakeEmployeeRepository:
     def __init__(self):
         self.employees = {}
+        self.departments = {}
+        self.positions = {}
         self.keys = {}
         self.used_keys = set()
         self.employee_users = set()
 
-    def create_employee(self, full_name, email="", phone=""):
+    def create_employee(
+        self,
+        full_name,
+        email="",
+        phone="",
+        department_id=None,
+        position_id=None,
+    ):
+        department = self.departments.get(department_id)
+        position = self.positions.get(position_id)
         employee = {
             "id": len(self.employees) + 1,
             "full_name": full_name,
             "email": email,
             "phone": phone,
+            "department_id": department_id,
+            "position_id": position_id,
+            "department_name": department["name"] if department else None,
+            "position_name": position["name"] if position else None,
             "status": "active",
         }
         self.employees[employee["id"]] = employee
@@ -134,6 +149,43 @@ class FakeEmployeeRepository:
 
     def list_employees(self):
         return list(self.employees.values())
+
+    def list_departments(self):
+        result = []
+        for department in self.departments.values():
+            positions = [
+                position
+                for position in self.positions.values()
+                if position["department_id"] == department["id"]
+            ]
+            result.append({**department, "positions": positions})
+        return result
+
+    def create_department(self, name):
+        for department in self.departments.values():
+            if department["name"] == name:
+                return {**department, "positions": []}
+        department = {"id": len(self.departments) + 1, "name": name}
+        self.departments[department["id"]] = department
+        return {**department, "positions": []}
+
+    def create_position(self, department_id, name):
+        for position in self.positions.values():
+            if position["department_id"] == department_id and position["name"] == name:
+                return position
+        position = {
+            "id": len(self.positions) + 1,
+            "department_id": department_id,
+            "name": name,
+        }
+        self.positions[position["id"]] = position
+        return position
+
+    def department_exists(self, department_id):
+        return department_id in self.departments
+
+    def find_position(self, position_id):
+        return self.positions.get(position_id)
 
     def employee_has_user(self, employee_id):
         return employee_id in self.employee_users
@@ -201,6 +253,31 @@ def test_activation_service_lists_employees_for_admin():
         "First User",
         "Second User",
     ]
+
+
+def test_activation_service_creates_department_position_and_assigns_employee():
+    auth_repository = FakeAuthRepository()
+    admin = auth_repository.create_admin("admin", "Admin", "hash", "salt")
+    employee_repository = FakeEmployeeRepository()
+    service = EmployeeActivationService(
+        employee_repository,
+        auth_repository,
+        AppConfig(database_url="postgresql://test"),
+    )
+
+    department = service.create_department(admin, "IT")
+    position = service.create_position(admin, department["id"], "Sysadmin")
+    employee = service.create_employee(
+        admin,
+        "Nika Admin",
+        department_id=department["id"],
+        position_id=position["id"],
+    )
+
+    assert service.list_departments(admin)[0]["positions"][0]["name"] == "Sysadmin"
+    assert employee["department_name"] == "IT"
+    assert employee["position_name"] == "Sysadmin"
+    assert auth_repository.audit_events[-1]["event_type"] == "employee.created"
 
 
 def test_activation_service_rejects_missing_employee():

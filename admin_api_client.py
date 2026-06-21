@@ -70,11 +70,37 @@ class AdminApiClient:
     def employees(self):
         return self.request("GET", "/api/admin/employees")
 
-    def create_employee(self, full_name: str, email: str, phone: str):
+    def departments(self):
+        return self.request("GET", "/api/admin/departments")
+
+    def create_department(self, name: str):
+        return self.request("POST", "/api/admin/departments", {"name": name})
+
+    def create_position(self, department_id: int, name: str):
+        return self.request(
+            "POST",
+            f"/api/admin/departments/{department_id}/positions",
+            {"name": name},
+        )
+
+    def create_employee(
+        self,
+        full_name: str,
+        email: str,
+        phone: str,
+        department_id: int | None = None,
+        position_id: int | None = None,
+    ):
         return self.request(
             "POST",
             "/api/admin/employees",
-            {"full_name": full_name, "email": email, "phone": phone},
+            {
+                "full_name": full_name,
+                "email": email,
+                "phone": phone,
+                "department_id": department_id,
+                "position_id": position_id,
+            },
         )
 
     def create_activation_key(self, employee_id: int):

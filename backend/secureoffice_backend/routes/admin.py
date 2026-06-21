@@ -41,6 +41,8 @@ def register_admin_routes(
                 full_name=str(data.get("full_name", "")),
                 email=str(data.get("email", "")),
                 phone=str(data.get("phone", "")),
+                department_id=data.get("department_id"),
+                position_id=data.get("position_id"),
             )
         except ServiceError as exc:
             return jsonify(error=str(exc)), exc.status_code
@@ -54,6 +56,42 @@ def register_admin_routes(
         except ServiceError as exc:
             return jsonify(error=str(exc)), exc.status_code
         return jsonify(employees)
+
+    @app.get("/api/admin/departments")
+    @admin_required
+    def list_departments():
+        try:
+            departments = activation_service.list_departments(request.current_user)
+        except ServiceError as exc:
+            return jsonify(error=str(exc)), exc.status_code
+        return jsonify(departments)
+
+    @app.post("/api/admin/departments")
+    @admin_required
+    def create_department():
+        data = request.get_json(silent=True) or {}
+        try:
+            department = activation_service.create_department(
+                request.current_user,
+                str(data.get("name", "")),
+            )
+        except ServiceError as exc:
+            return jsonify(error=str(exc)), exc.status_code
+        return jsonify(department), 201
+
+    @app.post("/api/admin/departments/<int:department_id>/positions")
+    @admin_required
+    def create_position(department_id: int):
+        data = request.get_json(silent=True) or {}
+        try:
+            position = activation_service.create_position(
+                request.current_user,
+                department_id,
+                str(data.get("name", "")),
+            )
+        except ServiceError as exc:
+            return jsonify(error=str(exc)), exc.status_code
+        return jsonify(position), 201
 
     @app.post("/api/admin/employees/<int:employee_id>/activation-key")
     @admin_required

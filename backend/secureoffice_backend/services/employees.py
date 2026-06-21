@@ -26,27 +26,87 @@ class EmployeeActivationService:
         full_name: str,
         email: str = "",
         phone: str = "",
+        department_id: int | None = None,
+        position_id: int | None = None,
     ) -> dict[str, Any]:
         _require_admin(actor_user)
         full_name = full_name.strip()
         if not full_name:
             raise ServiceError("Укажите имя сотрудника.")
+        department_id, position_id = self._validate_employee_structure(
+            department_id,
+            position_id,
+        )
         employee = self.employee_repository.create_employee(
             full_name=full_name,
             email=email.strip(),
             phone=phone.strip(),
+            department_id=department_id,
+            position_id=position_id,
         )
         self.auth_repository.write_audit(
             actor_user_id=actor_user["id"],
             event_type="employee.created",
             entity_type="employee",
             entity_id=employee["id"],
+            details={
+                "department_id": department_id,
+                "position_id": position_id,
+            },
         )
         return employee
 
     def list_employees(self, actor_user: dict[str, Any]) -> list[dict[str, Any]]:
         _require_admin(actor_user)
         return self.employee_repository.list_employees()
+
+    def list_departments(self, actor_user: dict[str, Any]) -> list[dict[str, Any]]:
+        _require_admin(actor_user)
+        return self.employee_repository.list_departments()
+
+    def create_department(
+        self,
+        actor_user: dict[str, Any],
+        name: str,
+    ) -> dict[str, Any]:
+        _require_admin(actor_user)
+        name = name.strip()
+        if not name:
+            raise ServiceError("Укажите название отдела.")
+        department = self.employee_repository.create_department(name)
+        self.auth_repository.write_audit(
+            actor_user_id=actor_user["id"],
+            event_type="department.created",
+            entity_type="department",
+            entity_id=department["id"],
+            details={"name": department["name"]},
+        )
+        return department
+
+    def create_position(
+        self,
+        actor_user: dict[str, Any],
+        department_id: int,
+        name: str,
+    ) -> dict[str, Any]:
+        _require_admin(actor_user)
+        name = name.strip()
+        if not name:
+            raise ServiceError("Укажите название должности.")
+        if not self.employee_repository.department_exists(department_id):
+            raise ServiceError("Отдел не найден.", 404)
+        position = self.employee_repository.create_position(department_id, name)
+        self.auth_repository.write_audit(
+            actor_user_id=actor_user["id"],
+            event_type="position.created",
+            entity_type="position",
+            entity_id=position["id"],
+            details={
+                "department_id": department_id,
+                "name": position["name"],
+            },
+        )
+        return position
 
     def create_activation_key(
         self,
@@ -79,6 +139,24 @@ class EmployeeActivationService:
             "employee_id": employee_id,
             "expires_at": expires_at.isoformat(),
         }
+
+    def _validate_employee_structure(
+        self,
+        department_id: int | None,
+        position_id: int | None,
+    ) -> tuple[int | None, int | None]:
+        department_id = _optional_int(department_id)
+        position_id = _optional_int(position_id)
+        if department_id and not self.employee_repository.department_exists(department_id):
+            raise ServiceError("Отдел не найден.", 404)
+        if not position_id:
+            return department_id, None
+        position = self.employee_repository.find_position(position_id)
+        if position is None:
+            raise ServiceError("Должность не найдена.", 404)
+        if department_id and position["department_id"] != department_id:
+            raise ServiceError("Должность относится к другому отделу.")
+        return int(position["department_id"]), position_id
 
     def activate(self, code: str, username: str, password: str) -> dict[str, Any]:
         code = code.strip().upper()
@@ -119,3 +197,13 @@ class EmployeeActivationService:
 def _require_admin(user: dict[str, Any]) -> None:
     if not user or user.get("access_role") != "admin":
         raise ServiceError("Недостаточно прав.", 403)
+
+
+def _optional_int(value) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ServiceError("Некорректный идентификатор отдела или должности.") from exc
+    return parsed if parsed > 0 else None
