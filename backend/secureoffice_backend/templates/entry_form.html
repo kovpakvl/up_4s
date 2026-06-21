@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}Запись · SecureOffice{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <h1>{{ "Новая запись" if not entry else "Изменение записи" }}</h1>
+    <div class="muted">Сервис, URL, логин и пароль</div>
+  </div>
+  <a class="button" href="{{ url_for('cabinet') }}">Назад</a>
+</header>
+
+<section class="panel">
+  <form class="field-grid" method="post">
+    <label>
+      Сервис
+      <input name="service_name" value="{{ entry.service_name if entry else '' }}" required>
+    </label>
+    <label>
+      URL
+      <input name="site_url" value="{{ entry.site_url if entry else '' }}" placeholder="https://example.com">
+    </label>
+    <label>
+      Логин
+      <input name="login" value="{{ entry.login if entry else '' }}">
+    </label>
+    <label>
+      Пароль
+      <input name="password" value="{{ entry.password if entry else '' }}" required>
+    </label>
+    <label>
+      Комментарий
+      <textarea name="comment">{{ entry.comment if entry else '' }}</textarea>
+    </label>
+    <label class="check-row">
+      <input name="is_favorite" type="checkbox" value="1" {% if entry and entry.is_favorite %}checked{% endif %}>
+      Избранное
+    </label>
+    <button class="button primary" type="submit">Сохранить</button>
+  </form>
+</section>
+{% endblock %}

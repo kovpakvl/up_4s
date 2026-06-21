@@ -3,11 +3,15 @@ from os import getenv
 
 
 DEFAULT_DATABASE_URL = "postgresql://secureoffice:secureoffice@localhost:5432/secureoffice"
+DEFAULT_SECRET_KEY = "secureoffice-local-dev-secret"
+DEFAULT_FERNET_KEY = "i8EjRnJvR3t8x0gmnc7E_uw_kvFyf3yvrp9ofHEgHsQ="
 
 
 @dataclass(frozen=True)
 class AppConfig:
     database_url: str
+    secret_key: str = DEFAULT_SECRET_KEY
+    fernet_key: str = DEFAULT_FERNET_KEY
     host: str = "127.0.0.1"
     port: int = 8765
     session_ttl_hours: int = 12
@@ -17,6 +21,8 @@ class AppConfig:
     def from_env(cls) -> "AppConfig":
         return cls(
             database_url=getenv("SECUREOFFICE_DATABASE_URL", DEFAULT_DATABASE_URL),
+            secret_key=getenv("SECUREOFFICE_SECRET_KEY", DEFAULT_SECRET_KEY),
+            fernet_key=getenv("SECUREOFFICE_FERNET_KEY", DEFAULT_FERNET_KEY),
             host=getenv("SECUREOFFICE_HOST", "127.0.0.1"),
             port=_env_int("SECUREOFFICE_PORT", 8765),
             session_ttl_hours=_env_int("SECUREOFFICE_SESSION_TTL_HOURS", 12),

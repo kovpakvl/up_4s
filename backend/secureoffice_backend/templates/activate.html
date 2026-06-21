@@ -1,0 +1,27 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Активация · SecureOffice{% endblock %}
+{% block auth_subtitle %}Регистрация по ключу{% endblock %}
+
+{% block auth_content %}
+<form class="field-grid" method="post">
+  <label>
+    Ключ
+    <input name="code" autocomplete="one-time-code" required>
+  </label>
+  <label>
+    Логин
+    <input name="username" autocomplete="username" required>
+  </label>
+  <label>
+    Пароль
+    <input name="password" type="password" autocomplete="new-password" required>
+  </label>
+  <label>
+    Повтор пароля
+    <input name="repeat_password" type="password" autocomplete="new-password" required>
+  </label>
+  <button class="button primary full" type="submit">Активировать</button>
+  <a class="button full" href="{{ url_for('web_login') }}">Уже есть учётная запись</a>
+</form>
+{% endblock %}

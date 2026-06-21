@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block body %}
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="brand">
+      <div class="brand-mark">SO</div>
+      <div>
+        <div class="brand-name">SecureOffice</div>
+        <div class="muted">{% block auth_subtitle %}{% endblock %}</div>
+      </div>
+    </div>
+    {% include "_messages.html" %}
+    {% block auth_content %}{% endblock %}
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">SO</div>
+      <div class="brand-name">SecureOffice</div>
+    </div>
+    <div class="profile">
+      <div class="profile-name">{{ user.display_name }}</div>
+      <div class="profile-role">Сотрудник</div>
+    </div>
+    <form class="sidebar-actions" method="post" action="{{ url_for('web_logout') }}">
+      <button class="button full" type="submit">Выйти</button>
+    </form>
+  </aside>
+  <main class="content">
+    {% include "_messages.html" %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

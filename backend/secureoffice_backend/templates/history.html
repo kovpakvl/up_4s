@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}История · SecureOffice{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <h1>{{ entry.service_name }}</h1>
+    <div class="muted">История паролей</div>
+  </div>
+  <a class="button" href="{{ url_for('cabinet') }}">Назад</a>
+</header>
+
+<section class="panel">
+  {% if history %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Пароль</th>
+            <th>Кто изменил</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in history %}
+            <tr data-password-row>
+              <td>{{ item.created_at }}</td>
+              <td class="password-cell">
+                <span class="password-value is-hidden" data-password="{{ item.password }}">{{ item.password }}</span>
+                <button class="button" type="button" data-toggle-password>Показать</button>
+                <button class="button" type="button" data-copy>Копировать</button>
+              </td>
+              <td>{{ item.changed_by_name or "Система" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">Истории пока нет.</div>
+  {% endif %}
+</section>
+{% endblock %}

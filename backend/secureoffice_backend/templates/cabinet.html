@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block title %}Мои пароли · SecureOffice{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <h1>Мои пароли</h1>
+    <div class="muted">URL, логины и пароли вашей учётной записи</div>
+  </div>
+  <div class="toolbar">
+    <a class="button primary" href="{{ url_for('new_entry') }}">Добавить</a>
+  </div>
+</header>
+
+<section class="panel">
+  {% if entries %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Сервис</th>
+            <th>URL</th>
+            <th>Логин</th>
+            <th>Пароль</th>
+            <th>Обновлён</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries %}
+            <tr data-password-row>
+              <td>{{ "★ " if entry.is_favorite else "" }}{{ entry.service_name }}</td>
+              <td>
+                {% if entry.site_url %}
+                  <a href="{{ entry.site_url }}" target="_blank" rel="noreferrer">{{ entry.site_url }}</a>
+                {% endif %}
+              </td>
+              <td>{{ entry.login }}</td>
+              <td class="password-cell">
+                <span class="password-value is-hidden" data-password="{{ entry.password }}">{{ entry.password }}</span>
+                <button class="button" type="button" data-toggle-password>Показать</button>
+                <button class="button" type="button" data-copy>Копировать</button>
+              </td>
+              <td>{{ entry.updated_at }}</td>
+              <td>
+                <div class="toolbar">
+                  <a class="button" href="{{ url_for('edit_entry', entry_id=entry.id) }}">Изменить</a>
+                  <a class="button" href="{{ url_for('entry_history', entry_id=entry.id) }}">История</a>
+                  <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}">
+                    <button class="button danger" type="submit">Удалить</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <h2>Записей пока нет</h2>
+      <p>Добавьте первый сервис, чтобы он появился в списке.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

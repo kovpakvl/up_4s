@@ -25,6 +25,8 @@ services:
     container_name: secureoffice-backend
     environment:
       SECUREOFFICE_DATABASE_URL: postgresql://secureoffice:secureoffice@postgres:5432/secureoffice
+      SECUREOFFICE_SECRET_KEY: secureoffice-local-dev-secret
+      SECUREOFFICE_FERNET_KEY: i8EjRnJvR3t8x0gmnc7E_uw_kvFyf3yvrp9ofHEgHsQ=
       SECUREOFFICE_HOST: 0.0.0.0
       SECUREOFFICE_PORT: 8765
     ports:

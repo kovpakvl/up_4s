@@ -1,21 +1,16 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from .config import AppConfig
-from .repositories import AuthRepository
-from .security import (
+from ..config import AppConfig
+from ..repositories import AuthRepository
+from ..security import (
     generate_token,
     hash_password,
     hash_token,
     validate_password,
     verify_password,
 )
-
-
-class ServiceError(RuntimeError):
-    def __init__(self, message: str, status_code: int = 400):
-        super().__init__(message)
-        self.status_code = status_code
+from .errors import ServiceError
 
 
 class SetupService:
@@ -49,7 +44,7 @@ class SetupService:
             entity_type="user",
             entity_id=user["id"],
         )
-        return _public_user(user)
+        return public_user(user)
 
 
 class AuthService:
@@ -84,11 +79,23 @@ class AuthService:
         return {
             "token": token,
             "expires_at": expires_at.isoformat(),
-            "user": _public_user(user),
+            "user": public_user(user),
         }
 
+    def user_from_token(self, token: str) -> dict[str, Any] | None:
+        if not token:
+            return None
+        user = self.repository.find_user_by_session(hash_token(token))
+        return public_user(user) if user else None
 
-def _public_user(user: dict[str, Any]) -> dict[str, Any]:
+    def user_from_id(self, user_id: int | None) -> dict[str, Any] | None:
+        if user_id is None:
+            return None
+        user = self.repository.find_user_by_id(user_id)
+        return public_user(user) if user and user["is_active"] else None
+
+
+def public_user(user: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": user["id"],
         "username": user["username"],
