@@ -1,12 +1,15 @@
 # Build a distributable SecureOffice Admin executable.
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\build_exe.ps1
+#   powershell -ExecutionPolicy Bypass -File .\scripts\build_exe.ps1
 #
 # Result:
 #   dist\SecureOfficeAdmin.exe
 
 $ErrorActionPreference = "Stop"
+
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+Set-Location $repoRoot
 
 $python = "py"
 $venvPython = ".\.venv\Scripts\python.exe"
@@ -34,7 +37,7 @@ if (Test-Path -LiteralPath "dist") { Remove-Item -LiteralPath "dist" -Recurse -F
 if (Test-Path -LiteralPath "build") { Remove-Item -LiteralPath "build" -Recurse -Force }
 
 Write-Host "Building SecureOfficeAdmin.exe..." -ForegroundColor Cyan
-& $venvPython -m PyInstaller --clean SecureOfficeAdmin.spec
+& $venvPython -m PyInstaller --clean packaging\SecureOfficeAdmin.spec
 Assert-LastCommand "PyInstaller build failed."
 
 Write-Host ""

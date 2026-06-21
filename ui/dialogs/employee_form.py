@@ -5,7 +5,7 @@ from typing import Callable
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
+from desktop.api_client import AdminApiError
 
 from .. import theme
 from ..widgets.button import PrimaryButton, SecondaryButton

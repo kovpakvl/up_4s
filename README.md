@@ -52,7 +52,7 @@ docker compose up -d --build
 ## Сборка exe
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\build_exe.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_exe.ps1
 ```
 
 Скрипт сам создаёт `.venv`, ставит зависимости и собирает:
@@ -67,10 +67,9 @@ dist\SecureOfficeAdmin.exe
 
 - `admin_app.py` — точка входа нового desktop-приложения администратора.
 - `ui/` — CustomTkinter-интерфейс администратора.
+- `desktop/` — клиент API, запуск Docker Compose и desktop-утилиты.
 - `backend/secureoffice_backend/` — Flask backend, web-кабинет сотрудника, API и PostgreSQL-слой.
 - `docker-compose.yml` — PostgreSQL + backend.
-- `SecureOfficeAdmin.spec` — PyInstaller-сборка.
-- `build_exe.ps1` — сборка готового exe.
+- `packaging/` — PyInstaller-spec и настройки упаковки.
+- `scripts/` — сервисные скрипты, включая сборку exe.
 - `tests/` — backend-тесты.
-
-Старые файлы локального SQLite-приложения пока оставлены в проекте для истории учебной работы, но основной сценарий сейчас строится вокруг `admin_app.py`, `ui/` и `backend/`.

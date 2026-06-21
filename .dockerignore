@@ -5,11 +5,17 @@ __pycache__
 *.pyc
 *.pyo
 *.lnk
+*.exe
+*.rar
+*.zip
+*.7z
 
 data
 backups
 server_data
 server_backups
+build
+dist
 .pytest_cache
 .coverage
 htmlcov

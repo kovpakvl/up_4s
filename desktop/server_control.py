@@ -2,7 +2,7 @@ import socket
 import subprocess
 from pathlib import Path
 
-from config import BASE_DIR
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 
 class ServerCommandError(RuntimeError):

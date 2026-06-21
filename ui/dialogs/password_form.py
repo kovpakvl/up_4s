@@ -10,8 +10,8 @@ from typing import Callable, Optional
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
-from password_generator import generate_password
+from desktop.api_client import AdminApiError
+from desktop.password_generator import generate_password
 
 from .. import theme
 from ..widgets.button import PrimaryButton, SecondaryButton

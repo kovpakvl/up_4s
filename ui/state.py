@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from admin_api_client import AdminApiClient, AdminApiError
-from admin_server_control import ComposeServerController, local_server_url
+from desktop.api_client import AdminApiClient, AdminApiError
+from desktop.server_control import ComposeServerController, local_server_url
 
 
 class AppState:

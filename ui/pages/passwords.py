@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
+from desktop.api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon
@@ -34,28 +34,34 @@ class PasswordsTab(ctk.CTkFrame):
 
         toolbar = ctk.CTkFrame(self, fg_color="transparent")
         toolbar.pack(fill="x", pady=(0, 14))
-        toolbar.grid_columnconfigure(0, weight=1, minsize=360)
-        toolbar.grid_columnconfigure(1, weight=0)
-        toolbar.grid_columnconfigure(2, weight=0)
 
-        self.search_field = LabeledEntry(
-            toolbar, label="Поиск", placeholder="Сервис, логин, сотрудник"
-        )
-        self.search_field.grid(row=0, column=0, sticky="ew", padx=(0, 12))
-        self.search_field.entry.bind("<KeyRelease>", self._on_search)
-
-        SecondaryButton(
-            toolbar,
-            text="Обновить",
-            icon="refresh",
-            command=self._reload,
-        ).grid(row=0, column=1, sticky="e", padx=(0, 8), pady=(22, 0))
+        actions = ctk.CTkFrame(toolbar, fg_color="transparent")
+        actions.pack(side="right", padx=(12, 0), pady=(22, 0))
         PrimaryButton(
-            toolbar,
+            actions,
             text="Добавить",
             icon="plus",
+            width=146,
             command=self._open_new_entry,
-        ).grid(row=0, column=2, sticky="e", pady=(22, 0))
+        ).pack(side="right")
+        SecondaryButton(
+            actions,
+            text="Обновить",
+            icon="refresh",
+            width=140,
+            command=self._reload,
+        ).pack(side="right", padx=(0, 8))
+
+        fields = ctk.CTkFrame(toolbar, fg_color="transparent")
+        fields.pack(side="left", fill="x", expand=True)
+
+        self.search_field = LabeledEntry(
+            fields,
+            label="Поиск",
+            placeholder="Сервис, логин, сотрудник",
+        )
+        self.search_field.pack(fill="x")
+        self.search_field.entry.bind("<KeyRelease>", self._on_search)
 
         self.list_holder = ctk.CTkScrollableFrame(
             self,

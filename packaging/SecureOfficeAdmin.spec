@@ -5,25 +5,27 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 
+ROOT = Path(SPECPATH).resolve().parent
+
 datas = []
 datas += collect_data_files("customtkinter")
 datas += collect_data_files("CTkMessagebox")
 datas += collect_data_files("qrcode")
-datas += [("docker-compose.yml", ".")]
-datas += [("backend/Dockerfile", "backend")]
-datas += [("backend/requirements.txt", "backend")]
+datas += [(str(ROOT / "docker-compose.yml"), ".")]
+datas += [(str(ROOT / "backend" / "Dockerfile"), "backend")]
+datas += [(str(ROOT / "backend" / "requirements.txt"), "backend")]
 
-for path in Path("backend/secureoffice_backend").rglob("*"):
+for path in (ROOT / "backend" / "secureoffice_backend").rglob("*"):
     if path.is_file():
-        datas.append((str(path), str(path.parent)))
+        datas.append((str(path), str(path.parent.relative_to(ROOT))))
 
 hiddenimports = []
 hiddenimports += collect_submodules("PIL")
 hiddenimports += collect_submodules("qrcode")
 
 a = Analysis(
-    ["admin_app.py"],
-    pathex=["."],
+    [str(ROOT / "admin_app.py")],
+    pathex=[str(ROOT)],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,

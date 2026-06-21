@@ -5,7 +5,7 @@ import customtkinter as ctk
 
 import threading
 
-from admin_api_client import AdminApiError
+from desktop.api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon
@@ -312,7 +312,7 @@ class SettingsPage(Page):
     def _do_stop_server(self) -> None:
         self.server_status_label.configure(text="Останавливаю контейнеры…")
         import threading
-        from admin_server_control import ServerCommandError
+        from desktop.server_control import ServerCommandError
 
         def worker() -> None:
             try:

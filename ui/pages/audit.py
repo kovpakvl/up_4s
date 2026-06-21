@@ -5,7 +5,7 @@ import threading
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
+from desktop.api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon

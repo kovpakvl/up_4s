@@ -6,8 +6,8 @@ from typing import Optional
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
-from admin_server_control import ServerCommandError
+from desktop.api_client import AdminApiError
+from desktop.server_control import ServerCommandError
 
 from . import theme
 from .splash import Splash

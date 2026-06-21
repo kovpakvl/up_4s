@@ -12,7 +12,7 @@ from typing import Callable, Optional
 
 import customtkinter as ctk
 
-from admin_api_client import AdminApiError
+from desktop.api_client import AdminApiError
 
 from .. import theme
 from ..assets.icons import icon as load_icon
@@ -469,7 +469,7 @@ def _build_password_step(wizard: Wizard, parent: ctk.CTkFrame) -> None:
     status_label.pack(anchor="w")
 
     def generate() -> None:
-        from password_generator import generate_password
+        from desktop.password_generator import generate_password
         password_field.set(generate_password(length=20))
 
     def save() -> None:

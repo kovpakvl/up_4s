@@ -108,6 +108,7 @@ class IconButton(ctk.CTkButton):
         tooltip: Optional[str] = None,
         **kwargs,
     ):
+        self._command = command
         kwargs.setdefault("text", "")
         kwargs.setdefault("width", size)
         kwargs.setdefault("height", size)
@@ -119,47 +120,47 @@ class IconButton(ctk.CTkButton):
         )
         kwargs.setdefault("border_width", 0)
         kwargs["image"] = load_icon(icon, icon_size, tone)
-        super().__init__(master, command=command, **kwargs)
+        super().__init__(master, command=self._invoke, **kwargs)
         self._tooltip = tooltip
-        self._tip_window: Optional[ctk.CTkToplevel] = None
+        self._tip_label: Optional[ctk.CTkLabel] = None
         if tooltip:
             self.bind("<Enter>", self._show_tip)
             self.bind("<Leave>", self._hide_tip)
-        # tooltip — это Toplevel, поэтому он не умирает с кнопкой
-        # автоматически. Подписываемся, чтобы при удалении/скрытии
-        # кнопки фантом не оставался поверх других окон.
+        self.bind("<ButtonPress>", self._hide_tip, add="+")
         self.bind("<Destroy>", self._hide_tip, add="+")
         self.bind("<Unmap>", self._hide_tip, add="+")
         self.bind("<FocusOut>", self._hide_tip, add="+")
 
+    def _invoke(self) -> None:
+        self._hide_tip()
+        if self._command:
+            self._command()
+
     def _show_tip(self, _event=None) -> None:
-        if self._tip_window or not self._tooltip:
+        if self._tip_label or not self._tooltip:
             return
-        x = self.winfo_rootx() + self.winfo_width() // 2
-        y = self.winfo_rooty() + self.winfo_height() + 6
-        tip = ctk.CTkToplevel(self)
-        tip.overrideredirect(True)
-        tip.attributes("-topmost", True)
-        tip.configure(fg_color=theme.palette_pair("overlay"))
+        root = self.winfo_toplevel()
         label = ctk.CTkLabel(
-            tip,
+            root,
             text=self._tooltip,
             text_color="#FFFFFF",
-            fg_color="transparent",
+            fg_color=theme.palette_pair("overlay"),
+            corner_radius=theme.RADIUS.sm,
             font=ctk.CTkFont(family="Segoe UI", size=11),
             padx=10,
             pady=6,
         )
-        label.pack()
-        tip.update_idletasks()
-        w = tip.winfo_reqwidth()
-        tip.geometry(f"+{x - w // 2}+{y}")
-        self._tip_window = tip
+        label.update_idletasks()
+        x = self.winfo_rootx() - root.winfo_rootx() + self.winfo_width() // 2
+        y = self.winfo_rooty() - root.winfo_rooty() + self.winfo_height() + 6
+        label.place(x=x, y=y, anchor="n")
+        self._tip_label = label
+        self.after(2200, self._hide_tip)
 
     def _hide_tip(self, _event=None) -> None:
-        if self._tip_window:
+        if self._tip_label:
             try:
-                self._tip_window.destroy()
+                self._tip_label.destroy()
             except Exception:
                 pass
-            self._tip_window = None
+            self._tip_label = None
