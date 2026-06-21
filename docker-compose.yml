@@ -1,0 +1,37 @@
+name: secureoffice
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: secureoffice-postgres
+    environment:
+      POSTGRES_DB: secureoffice
+      POSTGRES_USER: secureoffice
+      POSTGRES_PASSWORD: secureoffice
+    ports:
+      - "5432:5432"
+    volumes:
+      - secureoffice_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secureoffice -d secureoffice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: secureoffice-backend
+    environment:
+      SECUREOFFICE_DATABASE_URL: postgresql://secureoffice:secureoffice@postgres:5432/secureoffice
+      SECUREOFFICE_HOST: 0.0.0.0
+      SECUREOFFICE_PORT: 8765
+    ports:
+      - "8765:8765"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  secureoffice_postgres_data:

@@ -1,0 +1,15 @@
+.git
+.idea
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.lnk
+
+data
+backups
+server_data
+server_backups
+.pytest_cache
+.coverage
+htmlcov
